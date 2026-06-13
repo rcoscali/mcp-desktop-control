@@ -15,7 +15,10 @@ Run:
 Env (plus those of voice_core):
     MCP_VOICE_AGENT_CMD   agent command, the prompt is appended as last arg
                           (default: "claude -p")
-    MCP_VOICE_ACK         spoken acknowledgement after the trigger (default: "Oui ?")
+    MCP_VOICE_MODEL_NAME  assistant/model display name used for onboarding and
+                          default acknowledgement (default: "Assistant")
+    MCP_VOICE_ACK         spoken acknowledgement after the trigger
+                          (default: "<MCP_VOICE_MODEL_NAME> ?")
     MCP_VOICE_STOPWORDS   comma-separated phrases that end the loop
                           (default: "stop,quitte,au revoir,goodbye,exit")
 """
@@ -23,6 +26,7 @@ Env (plus those of voice_core):
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shlex
 import subprocess
 import sys
@@ -40,14 +44,57 @@ def run_agent(prompt: str) -> str:
     return out or (r.stderr or "").strip() or "(réponse vide)"
 
 
+def _config_home() -> Path:
+    if os.name == "nt":
+        fallback = str(Path.home() / "AppData" / "Roaming")
+        return Path(os.environ.get("APPDATA", fallback))
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+
+
+def _first_run_marker() -> Path:
+    return _config_home() / "mcp-desktop-control" / "voice_onboarding_done.marker"
+
+
+def _onboarding_message(model_name: str) -> str:
+    is_fr = voice_core.is_french()
+    wake = os.environ.get("MCP_VOICE_WAKE", "").strip()
+    if is_fr:
+        trigger = ("Déclenchez-moi avec le modèle de mot-clé configuré."
+                   if wake else
+                   "Mode push-to-talk actif : appuyez sur Entrée puis parlez.")
+        return (f"Bonjour, je suis {model_name}. "
+                "Je peux écouter votre commande, appeler l'agent puis lire la réponse. "
+                f"{trigger}")
+    trigger = ("Wake-word mode is active with your configured wake model."
+               if wake else
+               "Push-to-talk mode is active: press Enter, then speak.")
+    return (f"Hello, I am {model_name}. "
+            "I can listen to your command, call the agent, and read the response aloud. "
+            f"{trigger}")
+
+
+def _maybe_run_first_launch_onboarding(model_name: str) -> None:
+    marker = _first_run_marker()
+    if marker.exists():
+        return
+    try:
+        voice_core.speak(_onboarding_message(model_name))
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("done\n", encoding="utf-8")
+    except Exception as e:  # noqa: BLE001
+        print(f"[voice-loop] onboarding skipped: {e}", file=sys.stderr, flush=True)
+
+
 def main() -> int:
-    ack = os.environ.get("MCP_VOICE_ACK", "Oui ?")
+    model_name = os.environ.get("MCP_VOICE_MODEL_NAME", "").strip() or "Assistant"
+    ack = os.environ.get("MCP_VOICE_ACK", f"{model_name} ?")
     stop = [s.strip().lower() for s in
             os.environ.get("MCP_VOICE_STOPWORDS",
                            "stop,quitte,au revoir,goodbye,exit").split(",")
             if s.strip()]
 
     print("[voice-loop] prêt. (Ctrl-C pour arrêter)", file=sys.stderr, flush=True)
+    _maybe_run_first_launch_onboarding(model_name)
     try:
         while True:
             if not voice_core.wait_for_trigger():
