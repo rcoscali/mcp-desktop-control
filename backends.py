@@ -435,7 +435,7 @@ class LinuxBackend(Backend):
 
 class MacOSBackend(Backend):
     name = "macos"
-    session = "macos"
+    session = "aqua"
 
     def __init__(self) -> None:
         import pyautogui
@@ -477,10 +477,16 @@ class MacOSBackend(Backend):
         self._pg.hotkey(*keys)
 
     def a11y_tree(self, window, max_chars):
-        return "error: macOS accessibility backend not implemented yet"
+        return (
+            "error: macOS accessibility backend not implemented yet; "
+            "use screenshot + coordinate tools instead"
+        )
 
     def a11y_click(self, name, window, control_type):
-        return "error: macOS accessibility backend not implemented yet"
+        return (
+            "error: macOS accessibility backend not implemented yet; "
+            "use screenshot + click(x,y) instead"
+        )
 
 
 def get_backend() -> Backend:
