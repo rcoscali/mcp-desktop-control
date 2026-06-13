@@ -435,7 +435,7 @@ class LinuxBackend(Backend):
 
 class MacOSBackend(Backend):
     name = "macos"
-    session = "aqua"
+    session = "macos"
 
     def __init__(self) -> None:
         import pyautogui
