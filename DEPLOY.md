@@ -87,7 +87,7 @@ python3 -m pip install --user mcp        # ou dans un venv WSL
 # claude.exe doit être joignable depuis WSL (interop) :
 which claude.exe || echo "PATH Windows non hérité → fixer ASK_WIN_CLAUDE_BIN"
 
-claude mcp add windows-claude-bridge -- python3 ~/Sources/mcp-desktop-control/bridge/server.py
+claude mcp add windows-agent-bridge -- python3 ~/Sources/mcp-desktop-control/bridge/server.py
 ```
 Si `claude.exe` est introuvable, ajouter l'env `ASK_WIN_CLAUDE_BIN` (chemin
 complet du `claude.exe`) à la config du serveur bridge.
@@ -100,7 +100,7 @@ complet du `claude.exe`) à la config du serveur bridge.
 # le bridge atteint bien le Claude Windows :
 python3 ~/Sources/mcp-desktop-control/bridge/ask.py "Quel est ton répertoire de travail ?" --json
 ```
-Puis, depuis le **Claude WSL2**, demander une délégation via `ask_windows_claude`,
+Puis, depuis le **Claude WSL2**, demander une délégation via `ask_windows_agent`,
 par ex. : « prends une capture d'écran avec desktop-control et décris-la »,
 en passant `allowed_tools=["mcp__desktop-control__*","mcp__voice__*"]` et
 `permission_mode="acceptEdits"` (ou `bypassPermissions` sur machine de confiance).

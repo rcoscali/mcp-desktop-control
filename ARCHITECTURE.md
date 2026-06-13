@@ -10,7 +10,7 @@ permettent à un agent (Claude Code) de **percevoir et agir** sur une machine �
 |---|---|---|---|
 | **desktop-control** | `server.py`, `backends.py` | `screenshot`, `mouse_move`, `click`, `double_click`, `right_click`, `drag`, `scroll`, `type_text`, `press_key`, `hotkey`, `ui_tree`, `ui_click` | Windows ou Linux (X11/Wayland) |
 | **voice** | `voice/server.py`, `voice/voice_core.py` | `speak`, `listen`, `transcribe_file` | offline (Windows/Linux/WSLg) |
-| **windows-claude-bridge** | `bridge/server.py` | `ask_windows_claude` | WSL2/Linux |
+| **windows-agent-bridge** | `bridge/server.py` | `ask_windows_agent` | WSL2/Linux |
 | **voice loop** *(hors MCP)* | `voice/loop.py` | — (wrapper mains-libres) | autonome |
 
 ## A. Vue composants
@@ -22,16 +22,16 @@ permettent à un agent (Claude Code) de **percevoir et agir** sur une machine �
                          └───────┬───────────────────────┬───────────────────────────┬────────────────┘
                                  │                       │                           │
                      ┌───────────▼─────────┐  ┌──────────▼──────────┐    ┌───────────▼─────────────┐
-                     │   desktop-control    │  │        voice         │    │  windows-claude-bridge   │
+                     │   desktop-control    │  │        voice         │                         │   windows-agent-bridge   │
                      │  perception + action │  │   parler / écouter   │    │  déléguer à un autre     │
-                     ├──────────────────────┤  ├──────────────────────┤    │  Claude (Windows)        │
+                     ├──────────────────────┤  ├──────────────────────┤    │  agent (Windows)         │
                      │ screenshot, click,   │  │ speak, listen,       │    ├──────────────────────────┤
-                     │ type, scroll, drag,  │  │ transcribe_file      │    │ ask_windows_claude       │
+                     │ type, scroll, drag,  │  │ transcribe_file      │    │ ask_windows_agent        │
                      │ ui_tree, ui_click    │  │                      │    │                          │
                      └──────────┬───────────┘  └──────────┬───────────┘    └──────────┬───────────────┘
                                 │                          │                           │
-                  pyautogui + UIA(Win)/AT-SPI    faster-whisper (STT)        claude.exe -p --output-format
-                  mss/grim/ydotool (Linux)       pyttsx3/espeak/Piper(TTS)   json  (WSL interop)
+                  pyautogui + UIA(Win)/AT-SPI    faster-whisper (STT)        CLI/API agent
+                  mss/grim/ydotool (Linux)       pyttsx3/espeak/Piper(TTS)   (Claude/OpenAI/Mistral/Copilot)
                                 │                          │
                                 ▼                          ▼
                         écran + souris/clavier        haut-parleurs + micro
@@ -39,7 +39,7 @@ permettent à un agent (Claude Code) de **percevoir et agir** sur une machine �
 
 ## B. Topologie recommandée — orchestrateur WSL2 + exécuteur Windows
 
-WSL2 ne voit pas le bureau Windows : il **orchestre**, et un Claude **Windows**
+WSL2 ne voit pas le bureau Windows : il **orchestre**, et un agent **Windows**
 **exécute** le travail bureau/voix.
 
 ```
@@ -49,7 +49,7 @@ WSL2 ne voit pas le bureau Windows : il **orchestre**, et un Claude **Windows**
  │     Claude Code — orchestrateur         │   │   │       Claude Code — exécuteur            │
  │                                         │   │   │                                          │
  │  client MCP                             │   │   │  client MCP                              │
- │   ├─▶ windows-claude-bridge ────────────┼── claude.exe ──┼──▶ (run headless -p --json)       │
+ │   ├─▶ windows-agent-bridge ─────────────┼── CLI/API ─────┼──▶ (agent Windows)                 │
  │   │      (bridge/server.py)             │  (interop) │   │     ├─▶ desktop-control           │
  │   │                                     │   │   │     │     │     pyautogui + UI Automation │
  │   └─▶ voice (option, audio WSLg)         │   │   │     │     │        └─▶ bureau Windows      │
@@ -62,7 +62,7 @@ WSL2 ne voit pas le bureau Windows : il **orchestre**, et un Claude **Windows**
 flowchart LR
   subgraph WSL2["WSL2 (Linux)"]
     O["Claude Code — orchestrateur"]
-    B["windows-claude-bridge<br/>ask_windows_claude"]
+    B["windows-agent-bridge<br/>ask_windows_agent"]
     VW["voice (option, WSLg)"]
     O -->|MCP| B
     O -->|MCP| VW

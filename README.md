@@ -108,6 +108,6 @@ all local. See **`voice/README.md`**.
 
 ## 8. WSL2 → Windows delegation (optional) — `bridge/`
 
-`ask_windows_claude` lets a **WSL2** Claude delegate a task to a **Windows**
-Claude (headless `claude.exe`), so the Windows agent can drive the Windows
+`ask_windows_agent` lets a **WSL2** orchestrator delegate a task to a **Windows**
+agent (Claude/OpenAI/Mistral/Copilot; CLI or API), so the Windows side can drive
 desktop/voice while WSL2 orchestrates. See **`bridge/README.md`** and `WSL2.md`.

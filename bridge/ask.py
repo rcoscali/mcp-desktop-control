@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-bridge/ask.py — CLI to delegate a one-shot task to the Windows Claude Code.
+bridge/ask.py — CLI to delegate a one-shot task to a Windows AI agent.
 
 Same engine as the MCP tool, handy to validate the WSL2 -> Windows bridge before
 wiring it into Claude Code.
@@ -15,30 +15,46 @@ import argparse
 import json
 import sys
 
-from server import _run_windows_claude
+from server import ask_windows_agent
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Delegate a task to the Windows Claude Code.")
+    ap = argparse.ArgumentParser(description="Delegate a task to a Windows AI agent.")
     ap.add_argument("prompt")
+    ap.add_argument("--provider", default="claude", help="claude/openai/mistral/copilot/custom")
+    ap.add_argument("--interface", default="cli", help="cli/api")
     ap.add_argument("--allowed-tools", nargs="*", default=None)
     ap.add_argument("--permission-mode", default=None)
     ap.add_argument("--resume", default=None)
     ap.add_argument("--cwd", default=None)
     ap.add_argument("--add-dir", nargs="*", default=None)
     ap.add_argument("--model", default=None)
+    ap.add_argument("--cli-command", default=None)
+    ap.add_argument("--cli-args-template", default=None)
+    ap.add_argument("--api-url", default=None)
+    ap.add_argument("--api-key", default=None)
+    ap.add_argument("--api-headers", default=None, help="JSON object")
+    ap.add_argument("--api-body", default=None, help="JSON object")
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--json", action="store_true", help="print the full JSON result")
     args = ap.parse_args()
 
-    res = _run_windows_claude(
+    res = ask_windows_agent(
         args.prompt,
+        provider=args.provider,
+        interface=args.interface,
         allowed_tools=args.allowed_tools,
         permission_mode=args.permission_mode,
         resume=args.resume,
         cwd=args.cwd,
         add_dir=args.add_dir,
         model=args.model,
+        cli_command=args.cli_command,
+        cli_args_template=args.cli_args_template,
+        api_url=args.api_url,
+        api_key=args.api_key,
+        api_headers=args.api_headers,
+        api_body=args.api_body,
         timeout=args.timeout,
     )
     if args.json:
