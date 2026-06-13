@@ -1,4 +1,4 @@
-# desktop-control — MCP server (screenshot + keyboard/mouse + accessibility)
+# desktop-control — MCP server (screenshot + keyboard/mouse + accessibility + voice cmds + voice synth)
 
 Lets an MCP client (e.g. Claude Code) drive a GUI: capture the screen, then
 move/click/type and — optionally — target controls **by name** via the OS
