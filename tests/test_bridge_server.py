@@ -187,6 +187,136 @@ class BridgeServerTests(unittest.TestCase):
         self.assertEqual(choices_result["result"], "from choices")
         self.assertEqual(output_result["result"], "first\nsecond")
 
+    # ------------------------------------------------------------------
+    # Security: override params must be gated by ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES
+    # ------------------------------------------------------------------
+
+    def test_cli_override_ignored_when_flag_absent(self):
+        """cli_command override must NOT be used when the env flag is unset."""
+        os.environ.pop("ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES", None)
+        os.environ["ASK_WIN_OPENAI_CLI_CMD"] = "env-cmd.exe"
+
+        captured_argv: list[list[str]] = []
+
+        class _FakeProc:
+            returncode = 0
+            stdout = '{"result":"ok"}'
+            stderr = ""
+
+        def _fake_run(argv, **kwargs):
+            captured_argv.append(list(argv))
+            return _FakeProc()
+
+        with mock.patch.object(self.server.subprocess, "run", side_effect=_fake_run):
+            self.server._ask_windows_agent(
+                "do something",
+                provider="openai",
+                interface="cli",
+                cli_command="injected.exe",
+            )
+
+        self.assertTrue(captured_argv, "subprocess.run was not called")
+        self.assertNotEqual(captured_argv[0][0], "injected.exe",
+                            "cli_command override must be ignored without the env flag")
+        self.assertEqual(captured_argv[0][0], "env-cmd.exe",
+                         "env-configured command must be used instead")
+
+    def test_cli_override_used_when_flag_present(self):
+        """cli_command override IS used when ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES is set."""
+        os.environ["ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES"] = "1"
+        os.environ["ASK_WIN_OPENAI_CLI_CMD"] = "env-cmd.exe"
+
+        captured_argv: list[list[str]] = []
+
+        class _FakeProc:
+            returncode = 0
+            stdout = '{"result":"ok"}'
+            stderr = ""
+
+        def _fake_run(argv, **kwargs):
+            captured_argv.append(list(argv))
+            return _FakeProc()
+
+        with mock.patch.object(self.server.subprocess, "run", side_effect=_fake_run):
+            self.server._ask_windows_agent(
+                "do something",
+                provider="openai",
+                interface="cli",
+                cli_command="injected.exe",
+            )
+
+        self.assertTrue(captured_argv, "subprocess.run was not called")
+        self.assertEqual(captured_argv[0][0], "injected.exe",
+                         "cli_command override must be used when the env flag is set")
+
+    def test_api_override_ignored_when_flag_absent(self):
+        """api_url override must NOT be used when the env flag is unset."""
+        os.environ.pop("ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES", None)
+        os.environ["ASK_WIN_OPENAI_API_URL"] = "https://env.test/v1/chat/completions"
+
+        captured_urls: list[str] = []
+
+        class _FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"ok"}}]}'
+
+        def _fake_urlopen(req, timeout):
+            captured_urls.append(req.full_url)
+            return _FakeResponse()
+
+        with mock.patch.object(self.server.urllib.request, "urlopen", side_effect=_fake_urlopen):
+            self.server._ask_windows_agent(
+                "do something",
+                provider="openai",
+                interface="api",
+                api_url="https://injected.test/v1",
+            )
+
+        self.assertTrue(captured_urls, "urlopen was not called")
+        self.assertNotEqual(captured_urls[0], "https://injected.test/v1",
+                            "api_url override must be ignored without the env flag")
+        self.assertEqual(captured_urls[0], "https://env.test/v1/chat/completions",
+                         "env-configured URL must be used instead")
+
+    def test_api_override_used_when_flag_present(self):
+        """api_url override IS used when ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES is set."""
+        os.environ["ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES"] = "1"
+        os.environ.pop("ASK_WIN_OPENAI_API_URL", None)
+
+        captured_urls: list[str] = []
+
+        class _FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"ok"}}]}'
+
+        def _fake_urlopen(req, timeout):
+            captured_urls.append(req.full_url)
+            return _FakeResponse()
+
+        with mock.patch.object(self.server.urllib.request, "urlopen", side_effect=_fake_urlopen):
+            self.server._ask_windows_agent(
+                "do something",
+                provider="openai",
+                interface="api",
+                api_url="https://injected.test/v1",
+            )
+
+        self.assertTrue(captured_urls, "urlopen was not called")
+        self.assertEqual(captured_urls[0], "https://injected.test/v1",
+                         "api_url override must be used when the env flag is set")
+
 
 if __name__ == "__main__":
     unittest.main()
