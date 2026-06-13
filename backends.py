@@ -7,6 +7,7 @@ the backends are thin and interchangeable.
 
 Backends:
   - WindowsBackend : pyautogui + (optional) pywinauto UI Automation.
+  - MacOSBackend   : pyautogui (accessibility tools unavailable for now).
   - LinuxBackend   : X11 via pyautogui (+mss); Wayland via grim/gnome-screenshot
                      for capture and ydotool for input (best-effort);
                      (optional) AT-SPI via pyatspi for accessibility.
@@ -432,10 +433,62 @@ class LinuxBackend(Backend):
             return f"error: {e}"
 
 
+class MacOSBackend(Backend):
+    name = "macos"
+    session = "aqua"
+
+    def __init__(self) -> None:
+        import pyautogui
+
+        pyautogui.FAILSAFE = True
+        pyautogui.PAUSE = float(os.environ.get("MCP_DESKTOP_PAUSE", "0.05"))
+        self._pg = pyautogui
+
+    def screen_size(self):
+        s = self._pg.size()
+        return int(s.width), int(s.height)
+
+    def grab(self):
+        return self._pg.screenshot()
+
+    def move(self, x, y):
+        self._pg.moveTo(x, y)
+
+    def click(self, x, y, button="left", clicks=1):
+        self._pg.click(x, y, clicks=clicks, button=button)
+
+    def drag(self, x1, y1, x2, y2, button="left", duration=0.3):
+        self._pg.moveTo(x1, y1)
+        self._pg.dragTo(x2, y2, duration=duration, button=button)
+
+    def scroll(self, amount, x=None, y=None):
+        if x is not None and y is not None:
+            self._pg.scroll(amount, x=x, y=y)
+        else:
+            self._pg.scroll(amount)
+
+    def type_text(self, text, interval=0.02):
+        self._pg.write(text, interval=interval)
+
+    def press(self, key):
+        self._pg.press(key)
+
+    def hotkey(self, keys):
+        self._pg.hotkey(*keys)
+
+    def a11y_tree(self, window, max_chars):
+        return "error: macOS accessibility backend not implemented yet"
+
+    def a11y_click(self, name, window, control_type):
+        return "error: macOS accessibility backend not implemented yet"
+
+
 def get_backend() -> Backend:
     system = platform.system()
     if system == "Windows":
         return WindowsBackend()
     if system == "Linux":
         return LinuxBackend()
+    if system == "Darwin":
+        return MacOSBackend()
     raise RuntimeError(f"unsupported platform: {system}")

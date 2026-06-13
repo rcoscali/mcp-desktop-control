@@ -5,6 +5,9 @@ pillow>=10.0.0
 # Windows: UI Automation backend (robust, name-based targeting).
 pywinauto>=0.6.8 ; platform_system == "Windows"
 
+# macOS: uses pyautogui for screenshot/input (grant Screen Recording,
+# Accessibility, and Input Monitoring to Terminal/Python).
+
 # Linux/X11: reliable screenshot without needing scrot.
 mss>=9.0.0 ; platform_system == "Linux"
 

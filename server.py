@@ -2,10 +2,10 @@
 """
 desktop-control — MCP server to drive a GUI by screenshot + mouse/keyboard.
 
-Cross-platform: Windows (pyautogui + UI Automation) and Linux (X11 via
-pyautogui; Wayland via grim/gnome-screenshot + ydotool; AT-SPI accessibility).
-The OS specifics live in backends.py; this module is the platform-agnostic MCP
-surface (tools, coordinate scaling, dry-run, transport).
+Cross-platform: Windows (pyautogui + UI Automation), macOS (pyautogui), and
+Linux (X11 via pyautogui; Wayland via grim/gnome-screenshot + ydotool; AT-SPI
+accessibility). The OS specifics live in backends.py; this module is the
+platform-agnostic MCP surface (tools, coordinate scaling, dry-run, transport).
 
 Coordinate model
 -----------------

@@ -4,12 +4,13 @@ Lets an MCP client (e.g. Claude Code) drive a GUI: capture the screen, then
 move/click/type and — optionally — target controls **by name** via the OS
 accessibility layer.
 
-**Cross-platform**: **Windows** (pyautogui + UI Automation) and **Linux**
-(X11 via pyautogui; Wayland via `grim`/`gnome-screenshot` + `ydotool`; AT-SPI
-accessibility). OS specifics are isolated in `backends.py`; `server.py` is the
-shared tool surface. See `DESIGN.md` for the design, **`ARCHITECTURE.md`** for the
-big picture (desktop-control + voice + bridge), and **`DEPLOY.md`** for a
-step-by-step WSL2 + Windows install.
+**Cross-platform**: **Windows** (pyautogui + UI Automation), **macOS**
+(pyautogui), and **Linux** (X11 via pyautogui; Wayland via
+`grim`/`gnome-screenshot` + `ydotool`; AT-SPI accessibility). OS specifics are
+isolated in `backends.py`; `server.py` is the shared tool surface. See
+`DESIGN.md` for the design, **`ARCHITECTURE.md`** for the big picture
+(desktop-control + voice + bridge), and **`DEPLOY.md`** for a step-by-step
+WSL2 + Windows install.
 
 ## 1. Install (on the target machine)
 
@@ -24,6 +25,7 @@ Platform extras:
 | Platform | Needed | How |
 |---|---|---|
 | Windows | UI Automation | `pywinauto` (in requirements) |
+| macOS | screenshot/input permissions | grant Terminal/Python Screen Recording, Accessibility and Input Monitoring |
 | Linux **X11** | input + capture | works out of the box (pyautogui + mss) |
 | Linux **Wayland** | capture | `grim` *or* `gnome-screenshot` *or* `spectacle` |
 | Linux **Wayland** | input | `ydotool` + running `ydotoold` (uinput access) |
@@ -96,6 +98,7 @@ mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 ## 6. Limits
 
 - Multi-monitor: primary/virtual screen.
+- macOS accessibility tools (`ui_tree`/`ui_click`) are not implemented yet.
 - Wayland input is restricted (see §1); X11 or AT-SPI recommended.
 - Latency: each step is a screenshot→decide→act round-trip.
 
