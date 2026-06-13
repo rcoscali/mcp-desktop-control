@@ -55,6 +55,7 @@ ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES=1 python bridge/ask.py "Summarize this text" 
 | `ASK_WIN_<PROVIDER>_API_HEADERS` | JSON headers object |
 | `ASK_WIN_<PROVIDER>_API_BODY` | JSON body template |
 | `ASK_WIN_AGENT_*` | generic fallback for shared provider settings such as `MODEL`, `API_URL`, `API_KEY`, `API_HEADERS`, `API_BODY`, `CLI_CMD`, `CLI_ARGS` |
+| `ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES` | if non-empty, allow `bridge/ask.py` (and the internal helper) to accept `--cli-command/--cli-args-template/--api-url/--api-key/--api-headers/--api-body` overrides; otherwise these overrides are ignored |
 
 `ASK_WIN_AGENT_ARGS` / `ASK_WIN_<PROVIDER>_CLI_ARGS` placeholders: `{prompt}`,
 `{model}`, `{resume}`, `{cwd}`, `{permission_mode}`, `{allowed_tools}`,
