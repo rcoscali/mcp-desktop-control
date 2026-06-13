@@ -103,3 +103,9 @@ Offline **voice command** (STT) and **spoken responses** (TTS): a `voice` MCP
 server (`speak` / `listen` / `transcribe_file`) plus a hands-free loop
 (wake word → record → agent → speak). Engines: faster-whisper + pyttsx3/Piper,
 all local. See **`voice/README.md`**.
+
+## 8. WSL2 → Windows delegation (optional) — `bridge/`
+
+`ask_windows_claude` lets a **WSL2** Claude delegate a task to a **Windows**
+Claude (headless `claude.exe`), so the Windows agent can drive the Windows
+desktop/voice while WSL2 orchestrates. See **`bridge/README.md`** and `WSL2.md`.

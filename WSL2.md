@@ -62,6 +62,13 @@ set MCP_DESKTOP_TRANSPORT=sse & python voice\server.py   # voice (use a 2nd port
 > Automation). No WSL2-specific change is needed — the design already supports
 > being launched as a Windows process from WSL2.
 
+### B.3 Delegate from WSL2 to a Windows Claude (`bridge/`)
+Instead of (or alongside) running servers on Windows, a **WSL2 Claude can hand a
+whole task to a Windows Claude** via the `windows-claude-bridge` MCP server
+(`ask_windows_claude`), which calls `claude.exe -p … --output-format json`. The
+Windows agent — with the desktop-control / voice servers configured — does the
+GUI/voice work and returns the result. See `bridge/README.md`.
+
 ---
 
 ## Scheme A: voice inside WSL2 (WSLg audio)

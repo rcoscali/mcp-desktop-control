@@ -27,6 +27,13 @@
       "command": "python3",
       "args": ["/home/you/mcp-desktop-control/voice/server.py"],
       "env": { "MCP_VOICE_WHISPER_MODEL": "base", "MCP_VOICE_LANG": "fr" }
+    },
+
+    "windows-claude-bridge": {
+      "_when": "Run in WSL2: delegate a task to the Windows Claude (claude.exe headless). Lets a WSL2 agent act on the Windows side (desktop/voice).",
+      "command": "python3",
+      "args": ["/home/you/mcp-desktop-control/bridge/server.py"],
+      "env": { "ASK_WIN_CLAUDE_BIN": "claude.exe" }
     }
   }
 }
