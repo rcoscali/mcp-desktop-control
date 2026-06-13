@@ -89,8 +89,8 @@ which claude.exe || echo "PATH Windows non hérité → fixer ASK_WIN_CLAUDE_BIN
 
 claude mcp add windows-agent-bridge -- python3 ~/Sources/mcp-desktop-control/bridge/server.py
 ```
-Si `claude.exe` est introuvable, ajouter l'env `ASK_WIN_CLAUDE_BIN` (chemin
-complet du `claude.exe`) à la config du serveur bridge.
+Si `claude.exe` est introuvable, ajouter l'env `ASK_WIN_AGENT_BIN` (ou
+`ASK_WIN_CLAUDE_BIN` / `ASK_WIN_CLAUDE_CLI_CMD`) à la config du serveur bridge.
 
 ---
 
