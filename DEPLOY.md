@@ -100,7 +100,7 @@ complet du `claude.exe`) à la config du serveur bridge.
 # le bridge atteint bien le Claude Windows :
 python3 ~/Sources/mcp-desktop-control/bridge/ask.py "Quel est ton répertoire de travail ?" --json
 ```
-Puis, depuis le **Claude WSL2**, demander une délégation via `ask_windows_agent`,
+Puis, depuis l’**orchestrateur WSL2**, demander une délégation via `ask_windows_agent`,
 par ex. : « prends une capture d'écran avec desktop-control et décris-la »,
 en passant `allowed_tools=["mcp__desktop-control__*","mcp__voice__*"]` et
 `permission_mode="acceptEdits"` (ou `bypassPermissions` sur machine de confiance).
