@@ -34,7 +34,7 @@ python bridge/ask.py "Open Notepad and type hello" \
 
 ## Quick test (API)
 ```bash
-python bridge/ask.py "Summarize this text" --provider openai --interface api \
+ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES=1 python bridge/ask.py "Summarize this text" --provider openai --interface api \
     --api-url "https://api.openai.com/v1/chat/completions" --api-key "$OPENAI_API_KEY" \
     --api-body '{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"{prompt}"}]}'
 ```
