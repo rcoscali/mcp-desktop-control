@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import json
 import os
 from pathlib import Path
 import sys
 import types
 import unittest
+from unittest import mock
 
 
 def _load_bridge_server():
@@ -123,6 +125,59 @@ class BridgeServerTests(unittest.TestCase):
             "api_body",
         ):
             self.assertNotIn(name, parameters)
+
+    def test_run_api_agent_parses_json_headers_body_and_formats_body_tokens(self):
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"done"}}]}'
+
+        def _fake_urlopen(req, timeout):
+            captured["request"] = req
+            captured["timeout"] = timeout
+            return _FakeResponse()
+
+        with mock.patch.object(self.server.urllib.request, "urlopen", side_effect=_fake_urlopen):
+            result = self.server._run_api_agent(
+                "openai",
+                "hello from prompt",
+                model="gpt-5",
+                timeout=12,
+                api_url="https://example.test/v1/chat/completions",
+                api_key="token-123",
+                api_headers='{"X-Trace":"1"}',
+                api_body='{"model":"{model}","messages":[{"role":"user","content":"{prompt}"}]}',
+            )
+
+        request = captured["request"]
+        self.assertEqual(result["result"], "done")
+        self.assertEqual(captured["timeout"], 12)
+        self.assertEqual(request.full_url, "https://example.test/v1/chat/completions")
+        self.assertEqual(request.headers["X-trace"], "1")
+        self.assertTrue(request.headers["Authorization"].startswith("Bearer "))
+        self.assertEqual(request.headers["Content-type"], "application/json")
+        self.assertEqual(
+            json.loads(request.data.decode("utf-8")),
+            {"model": "gpt-5", "messages": [{"role": "user", "content": "hello from prompt"}]},
+        )
+
+    def test_normalize_agent_result_supports_choices_and_output_shapes(self):
+        choices_result = self.server._normalize_agent_result(
+            {"choices": [{"message": {"content": "from choices"}}]}
+        )
+        output_result = self.server._normalize_agent_result(
+            {"output": [{"content": [{"text": "first"}, {"text": "second"}]}]}
+        )
+
+        self.assertEqual(choices_result["result"], "from choices")
+        self.assertEqual(output_result["result"], "first\nsecond")
 
 
 if __name__ == "__main__":
