@@ -38,6 +38,7 @@ import urllib.request
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("windows-agent-bridge")
+MAX_RESPONSE_TEXT_CHARS = 4000
 
 
 def _as_list(value) -> list[str]:
@@ -116,7 +117,7 @@ def _extract_api_text(data) -> str:
                 return "\n".join(parts)
     if isinstance(data, str):
         return data
-    return json.dumps(data, ensure_ascii=False)[:4000]
+    return json.dumps(data, ensure_ascii=False)[:MAX_RESPONSE_TEXT_CHARS]
 
 
 def _run_cli_agent(
@@ -233,7 +234,7 @@ def _run_api_agent(
 
     default_body: dict | None = None
     if provider == "openai":
-        default_body = {"model": "{model}", "input": "{prompt}"}
+        default_body = {"model": "{model}", "messages": [{"role": "user", "content": "{prompt}"}]}
     elif provider in {"mistral", "copilot"}:
         default_body = {"model": "{model}", "messages": [{"role": "user", "content": "{prompt}"}]}
     body = _coerce_dict(api_body or _env(provider, "API_BODY") or default_body or {"prompt": "{prompt}"})

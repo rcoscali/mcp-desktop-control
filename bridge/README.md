@@ -31,8 +31,8 @@ python bridge/ask.py "What is your working directory?" --json
 python bridge/ask.py "Open Notepad and type hello" \
     --allowed-tools "mcp__desktop-control__*" --permission-mode bypassPermissions
 python bridge/ask.py "Summarize this text" --provider openai --interface api \
-    --api-url "https://api.openai.com/v1/responses" --api-key "$OPENAI_API_KEY" \
-    --api-body '{"model":"gpt-4.1-mini","input":"{prompt}"}'
+    --api-url "https://api.openai.com/v1/chat/completions" --api-key "$OPENAI_API_KEY" \
+    --api-body '{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"{prompt}"}]}'
 ```
 
 ## Configuration (env)
@@ -45,7 +45,7 @@ python bridge/ask.py "Summarize this text" --provider openai --interface api \
 | `ASK_WIN_<PROVIDER>_CLI_CMD` | CLI command for `provider` (`OPENAI`, `MISTRAL`, `COPILOT`, `CUSTOM`) |
 | `ASK_WIN_<PROVIDER>_CLI_ARGS` | CLI args template (supports `{prompt}`, `{model}`…) |
 | `ASK_WIN_<PROVIDER>_API_URL` | API URL for `provider` |
-| `ASK_WIN_<PROVIDER>_API_KEY` | API key (****** if no Authorization header) |
+| `ASK_WIN_<PROVIDER>_API_KEY` | API key (used to build Authorization header when missing) |
 | `ASK_WIN_<PROVIDER>_API_HEADERS` | JSON headers object |
 | `ASK_WIN_<PROVIDER>_API_BODY` | JSON body template |
 | `ASK_WIN_AGENT_*` | generic fallback for any provider |
