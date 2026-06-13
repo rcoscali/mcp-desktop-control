@@ -1,0 +1,25 @@
+{
+  "_comment": "Copy ONE server block into your Claude Code MCP config (project .mcp.json or via `claude mcp add`). Pick the one matching your target OS / transport.",
+
+  "mcpServers": {
+    "desktop-control-linux-stdio": {
+      "_when": "Driving the local Linux desktop; Claude Code launches the server.",
+      "command": "python3",
+      "args": ["/home/you/mcp-desktop-control/server.py"],
+      "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" }
+    },
+
+    "desktop-control-windows-stdio": {
+      "_when": "Driving the Windows desktop. Works from WSL too: 'python.exe' runs the Windows Python via interop.",
+      "command": "python.exe",
+      "args": ["C:\\\\Users\\\\you\\\\mcp-desktop-control\\\\server.py"],
+      "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" }
+    },
+
+    "desktop-control-sse": {
+      "_when": "You start the server yourself on the target: `python server.py --sse`, then connect over HTTP/SSE (Windows or Linux).",
+      "type": "sse",
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}

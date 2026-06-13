@@ -1,0 +1,15 @@
+mcp>=1.2.0
+pyautogui>=0.9.54
+pillow>=10.0.0
+
+# Windows: UI Automation backend (robust, name-based targeting).
+pywinauto>=0.6.8 ; platform_system == "Windows"
+
+# Linux/X11: reliable screenshot without needing scrot.
+mss>=9.0.0 ; platform_system == "Linux"
+
+# Linux extras NOT installed by pip (use your distro packages):
+#   - AT-SPI accessibility : python3-pyatspi  (apt) / python3-pyatspi (dnf)
+#   - Wayland capture      : grim | gnome-screenshot | spectacle
+#   - Wayland input        : ydotool (+ a running ydotoold, uinput access)
+# On X11, pyautogui handles input directly (python-xlib is pulled in).
