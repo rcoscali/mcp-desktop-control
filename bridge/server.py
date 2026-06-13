@@ -238,9 +238,7 @@ def _build_windows_agent_argv(
 def _normalize_agent_result(data) -> dict:
     """Map Claude-style or generic JSON payloads to a stable bridge result."""
     if isinstance(data, dict):
-        result = data.get("result")
-        if not isinstance(result, str) or not result.strip():
-            result = None
+        result = data["result"] if "result" in data and isinstance(data.get("result"), str) else None
         if result is None:
             for key in ("output_text", "text", "content", "response"):
                 value = data.get(key)

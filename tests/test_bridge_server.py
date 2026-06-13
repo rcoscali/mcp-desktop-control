@@ -106,6 +106,11 @@ class BridgeServerTests(unittest.TestCase):
         self.assertEqual(result["num_turns"], 2)
         self.assertFalse(result["is_error"])
 
+    def test_normalize_preserves_empty_result_string(self):
+        result = self.server._normalize_agent_result({"result": "", "content": "fallback"})
+
+        self.assertEqual(result["result"], "")
+
     def test_ask_windows_agent_does_not_expose_command_or_api_overrides(self):
         parameters = inspect.signature(self.server.ask_windows_agent).parameters
 
