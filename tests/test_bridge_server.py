@@ -216,10 +216,8 @@ class BridgeServerTests(unittest.TestCase):
             )
 
         self.assertTrue(captured_argv, "subprocess.run was not called")
-        self.assertNotEqual(captured_argv[0][0], "injected.exe",
-                            "cli_command override must be ignored without the env flag")
-        self.assertEqual(captured_argv[0][0], "env-cmd.exe",
-                         "env-configured command must be used instead")
+        self.assertNotEqual(captured_argv[0][0], "injected.exe", "cli_command override must be ignored without the env flag")
+        self.assertEqual(captured_argv[0][0], "env-cmd.exe", "env-configured command must be used instead")
 
     def test_cli_override_used_when_flag_present(self):
         """cli_command override IS used when ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES is set."""
@@ -246,8 +244,7 @@ class BridgeServerTests(unittest.TestCase):
             )
 
         self.assertTrue(captured_argv, "subprocess.run was not called")
-        self.assertEqual(captured_argv[0][0], "injected.exe",
-                         "cli_command override must be used when the env flag is set")
+        self.assertEqual(captured_argv[0][0], "injected.exe", "cli_command override must be used when the env flag is set")
 
     def test_api_override_ignored_when_flag_absent(self):
         """api_url override must NOT be used when the env flag is unset."""
@@ -279,10 +276,8 @@ class BridgeServerTests(unittest.TestCase):
             )
 
         self.assertTrue(captured_urls, "urlopen was not called")
-        self.assertNotEqual(captured_urls[0], "https://injected.test/v1",
-                            "api_url override must be ignored without the env flag")
-        self.assertEqual(captured_urls[0], "https://env.test/v1/chat/completions",
-                         "env-configured URL must be used instead")
+        self.assertNotEqual(captured_urls[0], "https://injected.test/v1", "api_url override must be ignored without the env flag")
+        self.assertEqual(captured_urls[0], "https://env.test/v1/chat/completions", "env-configured URL must be used instead")
 
     def test_api_override_used_when_flag_present(self):
         """api_url override IS used when ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES is set."""
@@ -314,8 +309,7 @@ class BridgeServerTests(unittest.TestCase):
             )
 
         self.assertTrue(captured_urls, "urlopen was not called")
-        self.assertEqual(captured_urls[0], "https://injected.test/v1",
-                         "api_url override must be used when the env flag is set")
+        self.assertEqual(captured_urls[0], "https://injected.test/v1", "api_url override must be used when the env flag is set")
 
 
 if __name__ == "__main__":
