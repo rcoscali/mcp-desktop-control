@@ -7,7 +7,8 @@ accessibility layer.
 **Cross-platform**: **Windows** (pyautogui + UI Automation) and **Linux**
 (X11 via pyautogui; Wayland via `grim`/`gnome-screenshot` + `ydotool`; AT-SPI
 accessibility). OS specifics are isolated in `backends.py`; `server.py` is the
-shared tool surface. See `DESIGN.md` for the architecture.
+shared tool surface. See `DESIGN.md` for the design and **`ARCHITECTURE.md`** for
+the big picture (desktop-control + voice + bridge).
 
 ## 1. Install (on the target machine)
 
