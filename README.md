@@ -82,7 +82,10 @@ mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 |---|---|---|
 | `MCP_DESKTOP_MAX_DIM` | `1280` | max screenshot side (px) |
 | `MCP_DESKTOP_DRY_RUN` | `0` | if `1`, don't actually move/click/type |
+| `MCP_DESKTOP_PAUSE` | `0.05` | inter-action delay used by pyautogui |
 | `MCP_DESKTOP_TRANSPORT` | `stdio` | `stdio` or `sse` |
+| `MCP_DESKTOP_GUIDE_CONFIRM_WORDS` | `yes,y,ok,okay,confirm,confirmed,proceed,continue,approved,approve,oui,confirmer,continuer` | comma-separated tokens treated as confirmation in guided flows |
+| `MCP_DESKTOP_GUIDE_REJECT_WORDS` | `no,n,cancel,stop,abort,deny,rejected,non,annuler,arreter,arrêter` | comma-separated tokens treated as rejection in guided flows |
 
 ## 5. Voice-driven loop (optional)
 
