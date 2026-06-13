@@ -28,12 +28,24 @@ Env configuration
 from __future__ import annotations
 
 import os
+import sys
 
 SR = int(os.environ.get("MCP_VOICE_SR", "16000"))
 
 # --- lazy singletons --------------------------------------------------------
 _whisper = None
 _sd_mod = None
+
+
+def is_french() -> bool:
+    lang = (os.environ.get("MCP_VOICE_LANG") or "").strip().lower()
+    return lang.startswith("fr")
+
+
+def _push_to_talk_prompt() -> str:
+    if is_french():
+        return "[push-to-talk] Entrée puis parlez (Ctrl-C pour quitter)… "
+    return "[push-to-talk] Press Enter, then speak (Ctrl-C to quit)… "
 
 
 def _resolve_device(spec: str | None, kind: str):
@@ -228,15 +240,24 @@ def wait_for_trigger() -> bool:
     wake = os.environ.get("MCP_VOICE_WAKE", "").strip()
     if not wake:
         try:
-            input("[push-to-talk] Entrée puis parlez (Ctrl-C pour quitter)… ")
+            input(_push_to_talk_prompt())
         except EOFError:
             return False
         return True
 
-    from openwakeword.model import Model
+    try:
+        from openwakeword.model import Model
+        oww = Model() if wake == "*" else Model(wakeword_models=[wake])
+    except Exception as e:  # noqa: BLE001
+        print(f"[voice] Invalid wake model '{wake}', fallback to push-to-talk: {e}",
+              file=sys.stderr, flush=True)
+        try:
+            input(_push_to_talk_prompt())
+        except EOFError:
+            return False
+        return True
 
     sd = _sd()
-    oww = Model() if wake == "*" else Model(wakeword_models=[wake])
     frame = int(SR * 0.08)
     with sd.InputStream(samplerate=SR, channels=1, dtype="int16") as stream:
         while True:
