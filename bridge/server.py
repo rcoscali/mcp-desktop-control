@@ -541,6 +541,8 @@ def _ask_windows_agent(
         api_body = None
     p = _normalize_provider(provider)
     itf = (interface or "cli").strip().lower()
+    if itf not in {"cli", "api"}:
+        return {"is_error": True, "error": f"invalid interface '{interface}' (expected 'cli' or 'api')"}
     if itf == "api":
         return _run_api_agent(
             p,
