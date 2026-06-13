@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-windows-claude-bridge — MCP server to delegate a task to a Windows Claude Code.
+windows-claude-bridge — MCP server to delegate a task to a Windows-side agent.
 
-Runs in WSL2 (or Linux). The single tool `ask_windows_claude` invokes the
-**Windows** `claude.exe` in headless mode (`-p --output-format json`) via the
-WSL interop, parses the JSON result and returns it. This lets a WSL2 Claude
-delegate Windows-side work (e.g. driving the Windows desktop through the
-desktop-control / voice MCP servers configured on the Windows side).
+Runs in WSL2 (or Linux). The generic tool `ask_windows_agent` (plus the legacy
+`ask_windows_claude` alias) launches a Windows headless agent CLI via WSL
+interop, parses the result and returns it. By default it targets
+`claude.exe -p --output-format json`, but the binary/argv can be overridden to
+use another agent.
 
-Why: WSL2 cannot see the Windows desktop; a Windows Claude can. The WSL2 agent
+Why: WSL2 cannot see the Windows desktop; the Windows agent can. The WSL2 agent
 orchestrates, the Windows agent executes. See ../WSL2.md.
 
 Safety
@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 
@@ -43,7 +44,50 @@ def _as_list(value) -> list[str]:
     return [t for t in str(value).replace(",", " ").split() if t]
 
 
-def _run_windows_claude(
+def _template_values(
+    prompt: str,
+    *,
+    allowed_tools=None,
+    permission_mode: str | None = None,
+    resume: str | None = None,
+    cwd: str | None = None,
+    add_dir=None,
+    model: str | None = None,
+) -> dict[str, str | list[str] | None]:
+    """Collect placeholder values used by ASK_WIN_AGENT_ARGS templates."""
+    return {
+        "prompt": prompt,
+        "model": model,
+        "resume": resume,
+        "cwd": cwd,
+        "permission_mode": permission_mode,
+        "allowed_tools": _as_list(allowed_tools),
+        "add_dir": _as_list(add_dir),
+    }
+
+
+def _expand_arg_template(template: str, values: dict[str, str | list[str] | None]) -> list[str]:
+    """Expand a shell-style argv template without splitting placeholder values."""
+    argv: list[str] = []
+    for token in shlex.split(template):
+        if token.startswith("{") and token.endswith("}"):
+            value = values.get(token[1:-1])
+            if isinstance(value, list):
+                argv.extend(value)
+                continue
+            if value:
+                argv.append(str(value))
+            continue
+        rendered = token.format_map({
+            key: "" if isinstance(value, list) or value is None else str(value)
+            for key, value in values.items()
+        })
+        if rendered:
+            argv.append(rendered)
+    return argv
+
+
+def _build_windows_agent_argv(
     prompt: str,
     *,
     allowed_tools=None,
@@ -53,11 +97,25 @@ def _run_windows_claude(
     add_dir=None,
     model: str | None = None,
     timeout: int = 600,
-) -> dict:
-    if not prompt or not prompt.strip():
-        return {"is_error": True, "error": "empty prompt"}
+) -> list[str]:
+    binary = (
+        os.environ.get("ASK_WIN_AGENT_BIN")
+        or os.environ.get("ASK_WIN_CLAUDE_BIN")
+        or "claude.exe"
+    )
+    values = _template_values(
+        prompt,
+        allowed_tools=allowed_tools,
+        permission_mode=permission_mode,
+        resume=resume,
+        cwd=cwd,
+        add_dir=add_dir,
+        model=model,
+    )
+    template = os.environ.get("ASK_WIN_AGENT_ARGS")
+    if template:
+        return [binary, *_expand_arg_template(template, values)]
 
-    binary = os.environ.get("ASK_WIN_CLAUDE_BIN", "claude.exe")
     argv: list[str] = [binary, "-p", prompt, "--output-format", "json"]
 
     tools = _as_list(allowed_tools) or _as_list(os.environ.get("ASK_WIN_CLAUDE_ALLOWED_TOOLS"))
@@ -78,7 +136,72 @@ def _run_windows_claude(
     dirs = _as_list(add_dir)
     if dirs:
         argv += ["--add-dir", *dirs]
+    return argv
 
+
+def _normalize_agent_result(data) -> dict:
+    """Map Claude-style or generic JSON payloads to a stable bridge result."""
+    if isinstance(data, dict):
+        result = data.get("result")
+        if result is None:
+            for key in ("text", "content", "output", "response"):
+                value = data.get(key)
+                if isinstance(value, str) and value.strip():
+                    result = value
+                    break
+            if result is None and isinstance(data.get("message"), dict):
+                message = data["message"]
+                result = message.get("content") or message.get("text")
+            if result is None and isinstance(data.get("choices"), list):
+                for choice in data["choices"]:
+                    if isinstance(choice, dict):
+                        message = choice.get("message")
+                        if isinstance(message, dict):
+                            result = message.get("content") or message.get("text")
+                        result = result or choice.get("text")
+                    if result:
+                        break
+        if result is None:
+            result = json.dumps(data, ensure_ascii=False)
+        error = data.get("error")
+        is_error = bool(data.get("is_error", False))
+        if not is_error and error:
+            is_error = True
+        return {
+            "is_error": is_error,
+            "error": error,
+            "result": result if isinstance(result, str) else json.dumps(result, ensure_ascii=False),
+            "session_id": data.get("session_id") or data.get("sessionId"),
+            "num_turns": data.get("num_turns") or data.get("turns"),
+            "total_cost_usd": data.get("total_cost_usd") or data.get("cost_usd"),
+        }
+    return {"is_error": False, "result": json.dumps(data, ensure_ascii=False)}
+
+
+def _run_windows_agent(
+    prompt: str,
+    *,
+    allowed_tools=None,
+    permission_mode: str | None = None,
+    resume: str | None = None,
+    cwd: str | None = None,
+    add_dir=None,
+    model: str | None = None,
+    timeout: int = 600,
+) -> dict:
+    if not prompt or not prompt.strip():
+        return {"is_error": True, "error": "empty prompt"}
+
+    argv = _build_windows_agent_argv(
+        prompt,
+        allowed_tools=allowed_tools,
+        permission_mode=permission_mode,
+        resume=resume,
+        cwd=cwd,
+        add_dir=add_dir,
+        model=model,
+        timeout=timeout,
+    )
     try:
         proc = subprocess.run(
             argv, capture_output=True, text=True, timeout=timeout, cwd=cwd
@@ -86,17 +209,17 @@ def _run_windows_claude(
     except subprocess.TimeoutExpired:
         return {"is_error": True, "error": f"timed out after {timeout}s"}
     except OSError as e:
-        # FileNotFoundError, PermissionError, … — claude.exe not launchable.
+        # FileNotFoundError, PermissionError, … — agent binary not launchable.
+        binary = argv[0]
         return {
             "is_error": True,
             "error": f"cannot launch '{binary}' ({e.__class__.__name__}: {e}). "
-            "Install Claude Code on Windows and make sure claude.exe is on the WSL "
-            "PATH (Windows interop) and executable, or set ASK_WIN_CLAUDE_BIN to "
-            "its full path (e.g. /mnt/c/Users/<you>/.../claude.exe).",
+            "Install your Windows-side agent CLI and make sure it is reachable from "
+            "WSL, or set ASK_WIN_AGENT_BIN (or ASK_WIN_CLAUDE_BIN for Claude Code) "
+            "to its full path.",
         }
 
     out = (proc.stdout or "").strip()
-    # `--output-format json` prints a single result object.
     try:
         data = json.loads(out)
     except Exception:
@@ -108,14 +231,51 @@ def _run_windows_claude(
                 "stdout": out[:2000],
             }
         return {"is_error": False, "result": out}
+    return _normalize_agent_result(data)
 
-    return {
-        "is_error": bool(data.get("is_error", False)),
-        "result": data.get("result", ""),
-        "session_id": data.get("session_id"),
-        "num_turns": data.get("num_turns"),
-        "total_cost_usd": data.get("total_cost_usd"),
-    }
+
+@mcp.tool()
+def ask_windows_agent(
+    prompt: str,
+    allowed_tools: list[str] | None = None,
+    permission_mode: str | None = None,
+    resume: str | None = None,
+    cwd: str | None = None,
+    add_dir: list[str] | None = None,
+    model: str | None = None,
+    timeout: int = 600,
+) -> dict:
+    """Delegate a task to a Windows-side headless agent and return its result.
+
+    By default this targets Claude Code (`claude.exe -p --output-format json`).
+    To use another CLI (Copilot, Gemini, Codex/OpenAI, open-model wrappers, ...),
+    set `ASK_WIN_AGENT_BIN` and `ASK_WIN_AGENT_ARGS` in the bridge environment.
+
+    - prompt          : the instruction for the Windows agent.
+    - allowed_tools   : tools the Windows agent may use without prompting, e.g.
+                        ["mcp__desktop-control__*","Bash"]. Without it, the
+                        Windows agent uses its own permission settings. This is
+                        passed automatically only with the default Claude setup.
+    - permission_mode : "default" | "acceptEdits" | "bypassPermissions"
+                        (bypass = full autonomy; use only on a trusted machine).
+    - resume          : a session_id returned by a previous call, to continue it.
+    - cwd / add_dir   : working directory / extra allowed dirs (Windows paths,
+                        e.g. C:\\work — pass /mnt/c/... for cwd from WSL).
+    - model / timeout : optional model override / max seconds. Custom agent
+                        templates may ignore unsupported fields.
+
+    Returns {is_error, result, session_id, num_turns, total_cost_usd}.
+    """
+    return _run_windows_agent(
+        prompt,
+        allowed_tools=allowed_tools,
+        permission_mode=permission_mode,
+        resume=resume,
+        cwd=cwd,
+        add_dir=add_dir,
+        model=model,
+        timeout=timeout,
+    )
 
 
 @mcp.tool()
@@ -129,22 +289,8 @@ def ask_windows_claude(
     model: str | None = None,
     timeout: int = 600,
 ) -> dict:
-    """Delegate a task to the Windows Claude Code and return its result.
-
-    - prompt          : the instruction for the Windows agent.
-    - allowed_tools   : tools the Windows agent may use without prompting, e.g.
-                        ["mcp__desktop-control__*","Bash"]. Without it, the
-                        Windows agent uses its own permission settings.
-    - permission_mode : "default" | "acceptEdits" | "bypassPermissions"
-                        (bypass = full autonomy; use only on a trusted machine).
-    - resume          : a session_id returned by a previous call, to continue it.
-    - cwd / add_dir   : working directory / extra allowed dirs (Windows paths,
-                        e.g. C:\\work — pass /mnt/c/... for cwd from WSL).
-    - model / timeout : optional model override / max seconds.
-
-    Returns {is_error, result, session_id, num_turns, total_cost_usd}.
-    """
-    return _run_windows_claude(
+    """Backward-compatible alias for ask_windows_agent()."""
+    return ask_windows_agent(
         prompt,
         allowed_tools=allowed_tools,
         permission_mode=permission_mode,
@@ -154,6 +300,9 @@ def ask_windows_claude(
         model=model,
         timeout=timeout,
     )
+
+
+_run_windows_claude = _run_windows_agent
 
 
 def _main() -> None:

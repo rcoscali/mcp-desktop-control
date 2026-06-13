@@ -15,11 +15,11 @@ WSL2 ships **WSLg**: a *virtual* display (Weston/Wayland + Xwayland) and a
 
 ## Scheme B (recommended): agent in WSL2 + servers on Windows
 
-Claude Code runs in WSL2; the MCP servers run as **Windows** processes (so they
-see the Windows desktop and use native audio). Two transports:
+Your MCP client runs in WSL2; the MCP servers run as **Windows** processes (so
+they see the Windows desktop and use native audio). Two transports:
 
 ### B.1 stdio via interop (simplest)
-Claude Code (WSL2) spawns `python.exe`, which is the **Windows** Python — it runs
+Your WSL2 client spawns `python.exe`, which is the **Windows** Python — it runs
 on Windows and drives the Windows desktop. `.mcp.json`:
 
 ```json
@@ -45,7 +45,7 @@ py -m pip install -r voice\requirements.txt
 ```
 
 ### B.2 SSE (decoupled)
-Start the servers on Windows, connect Claude Code (WSL2) over HTTP/SSE:
+Start the servers on Windows, connect your WSL2 client over HTTP/SSE:
 ```powershell
 python server.py --sse                 # desktop-control → :8000
 set MCP_DESKTOP_TRANSPORT=sse & python voice\server.py   # voice (use a 2nd port if needed)
@@ -62,12 +62,14 @@ set MCP_DESKTOP_TRANSPORT=sse & python voice\server.py   # voice (use a 2nd port
 > Automation). No WSL2-specific change is needed — the design already supports
 > being launched as a Windows process from WSL2.
 
-### B.3 Delegate from WSL2 to a Windows Claude (`bridge/`)
-Instead of (or alongside) running servers on Windows, a **WSL2 Claude can hand a
-whole task to a Windows Claude** via the `windows-claude-bridge` MCP server
-(`ask_windows_claude`), which calls `claude.exe -p … --output-format json`. The
-Windows agent — with the desktop-control / voice servers configured — does the
-GUI/voice work and returns the result. See `bridge/README.md`.
+### B.3 Delegate from WSL2 to a Windows agent (`bridge/`)
+Instead of (or alongside) running servers on Windows, a WSL2 client can hand a
+whole task to a Windows agent via the bridge server. By default
+`ask_windows_agent` launches `claude.exe -p … --output-format json`, but you can
+point it to another headless CLI with `ASK_WIN_AGENT_BIN` /
+`ASK_WIN_AGENT_ARGS`. The Windows agent — with the desktop-control / voice
+servers configured — does the GUI/voice work and returns the result. See
+`bridge/README.md`.
 
 ---
 

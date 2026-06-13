@@ -34,6 +34,9 @@ claude mcp add voice -- python3 /path/to/mcp-desktop-control/voice/server.py
 Tools: `speak(text)`, `listen(max_seconds, language)`, `transcribe_file(path, language)`.
 Combine with the desktop-control server for a voice-driven GUI agent.
 
+Any other MCP-capable client can use the same server command or SSE URL in its
+own configuration format.
+
 ## B. Hands-free loop
 
 ```bash
@@ -45,6 +48,7 @@ python voice/loop.py
   marker in the user config directory (`~/.config/mcp-desktop-control/` on
   Linux, `%APPDATA%\mcp-desktop-control\` on Windows).
 - The agent call is configurable: `MCP_VOICE_AGENT_CMD` (default `claude -p`);
+  point it at any headless CLI that accepts the prompt as the last argument.
   the transcribed text is appended and the agent's stdout is spoken back.
 - Say a stop word (`MCP_VOICE_STOPWORDS`, default *stop/quitte/au revoir/…*) to end.
 

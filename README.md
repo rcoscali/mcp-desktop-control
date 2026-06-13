@@ -1,6 +1,7 @@
 # desktop-control — MCP server (screenshot + keyboard/mouse + accessibility + voice cmds/STT + voice synth/TTS) **[[JUST For Fun]]**
 
-Lets an MCP client (e.g. Claude Code) drive a GUI: capture the screen, then
+Lets an MCP client (e.g. Claude Code, Gemini CLI, Codex/OpenAI, Copilot, or an
+open-model MCP host) drive a GUI: capture the screen, then
 move/click/type and — optionally — target controls **by name** via the OS
 accessibility layer.
 
@@ -35,7 +36,8 @@ Platform extras:
 
 ## 2. Run modes
 
-The server must run on the machine being driven. Two ways to wire it to Claude Code:
+The server must run on the machine being driven. Two ways to wire it to your MCP
+client:
 
 - **stdio** (client launches it). From **WSL** targeting Windows, point the
   command at `python.exe` so the *Windows* Python runs. On native Linux/Windows,
@@ -48,13 +50,15 @@ The server must run on the machine being driven. Two ways to wire it to Claude C
 > configs and the voice-in-WSL2 path.
 
 ```bash
-# stdio
+# Claude Code example (other clients use the same command / args or SSE URL in
+# their own MCP settings format)
 claude mcp add desktop-control -- python3 /path/to/server.py            # Linux
 claude mcp add desktop-control -- python.exe 'C:\path\to\server.py'     # Windows / from WSL
 # sse
 claude mcp add --transport sse desktop-control http://localhost:8000/sse
 ```
-See `mcp.json.example` for project-scope `.mcp.json` blocks.
+See `mcp.json.example` for reusable server definitions you can copy into
+`.mcp.json` or translate into another client's MCP settings UI/file.
 
 ## 3. Tools
 
@@ -129,6 +133,8 @@ all local. See **`voice/README.md`**.
 
 ## 8. WSL2 → Windows delegation (optional) — `bridge/`
 
-`ask_windows_claude` lets a **WSL2** Claude delegate a task to a **Windows**
-Claude (headless `claude.exe`), so the Windows agent can drive the Windows
-desktop/voice while WSL2 orchestrates. See **`bridge/README.md`** and `WSL2.md`.
+`ask_windows_agent` lets a **WSL2** client delegate a task to a **Windows**
+headless agent (Claude by default, configurable for other CLIs), so the Windows
+agent can drive the Windows desktop/voice while WSL2 orchestrates. The legacy
+tool name `ask_windows_claude` remains available for compatibility. See
+**`bridge/README.md`** and `WSL2.md`.
