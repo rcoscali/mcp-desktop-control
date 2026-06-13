@@ -54,6 +54,7 @@ def _template_values(
     add_dir=None,
     model: str | None = None,
 ) -> dict[str, str | list[str] | None]:
+    """Collect placeholder values used by ASK_WIN_AGENT_ARGS templates."""
     return {
         "prompt": prompt,
         "model": model,
@@ -66,6 +67,7 @@ def _template_values(
 
 
 def _expand_arg_template(template: str, values: dict[str, str | list[str] | None]) -> list[str]:
+    """Expand a shell-style argv template without splitting placeholder values."""
     argv: list[str] = []
     for token in shlex.split(template):
         if token.startswith("{") and token.endswith("}"):
@@ -138,6 +140,7 @@ def _build_windows_agent_argv(
 
 
 def _normalize_agent_result(data) -> dict:
+    """Map Claude-style or generic JSON payloads to a stable bridge result."""
     if isinstance(data, dict):
         result = data.get("result")
         if result is None:

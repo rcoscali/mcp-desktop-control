@@ -9,7 +9,9 @@ import unittest
 
 
 def _load_bridge_server():
+    """Load bridge/server.py with a stub FastMCP when mcp isn't installed."""
     class FakeFastMCP:
+        """Minimal FastMCP stand-in used to import the bridge module in tests."""
         def __init__(self, _name: str):
             pass
 
