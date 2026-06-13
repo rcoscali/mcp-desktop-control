@@ -34,6 +34,9 @@ claude mcp add voice -- python3 /path/to/mcp-desktop-control/voice/server.py
 Tools: `speak(text)`, `listen(max_seconds, language)`, `transcribe_file(path, language)`.
 Combine with the desktop-control server for a voice-driven GUI agent.
 
+Any other MCP-capable client can use the same server command or SSE URL in its
+own configuration format.
+
 ## B. Hands-free loop
 
 ```bash
@@ -41,7 +44,11 @@ python voice/loop.py
 ```
 - Trigger: set `MCP_VOICE_WAKE` to an openWakeWord model (e.g. `hey_jarvis`) for
   wake-word; leave it empty for **push-to-talk** (press Enter, then speak).
+- First launch plays a one-time spoken onboarding presentation, then stores a
+  marker in the user config directory (`~/.config/mcp-desktop-control/` on
+  Linux, `%APPDATA%\mcp-desktop-control\` on Windows).
 - The agent call is configurable: `MCP_VOICE_AGENT_CMD` (default `claude -p`);
+  point it at any headless CLI that accepts the prompt as the last argument.
   the transcribed text is appended and the agent's stdout is spoken back.
 - Say a stop word (`MCP_VOICE_STOPWORDS`, default *stop/quitte/au revoir/…*) to end.
 
@@ -53,11 +60,13 @@ python voice/loop.py
 | `MCP_VOICE_LANG` | auto | language hint, e.g. `fr`/`en` |
 | `MCP_VOICE_SR` | `16000` | capture sample rate |
 | `MCP_VOICE_TTS` | `pyttsx3` | `pyttsx3` \| `espeak` \| `piper` |
+| `MCP_VOICE_MODEL_NAME` | `Assistant` | model/assistant display name used in onboarding and default ack |
+| `MCP_VOICE_ACK` | uses `MCP_VOICE_MODEL_NAME` + ` ?` | spoken acknowledgement after trigger (set empty to disable) |
 | `MCP_VOICE_RATE` | — | speech rate (pyttsx3 wpm / espeak `-s`) |
 | `MCP_VOICE_ESPEAK_BIN` / `MCP_VOICE_ESPEAK_VOICE` | `espeak-ng` / — | espeak engine & voice (e.g. `fr`) |
 | `MCP_VOICE_PIPER_BIN` / `MCP_VOICE_PIPER_MODEL` | `piper` / — | Piper voice |
 | `MCP_VOICE_INPUT_DEVICE` / `MCP_VOICE_OUTPUT_DEVICE` | — | sounddevice in/out (index or name substring) |
-| `MCP_VOICE_WAKE` | — | openWakeWord model; empty = push-to-talk |
+| `MCP_VOICE_WAKE` | — | openWakeWord model name; empty = push-to-talk |
 | `MCP_VOICE_AGENT_CMD` | `claude -p` | agent invoked by the loop |
 
 ## Validate the audio chain
@@ -85,3 +94,5 @@ server **on Windows** while the agent runs in WSL2. Full guide: **`../WSL2.md`**
 - If `webrtcvad` is absent, recording uses a fixed `max_seconds` window.
 - If `openwakeword` is absent or `MCP_VOICE_WAKE` is empty, the loop uses
   push-to-talk.
+- `MCP_VOICE_WAKE` is a wake **model id** (openWakeWord), not a free-form phrase;
+  if the model cannot be loaded, the loop falls back to push-to-talk.

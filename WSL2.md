@@ -1,51 +1,38 @@
-# Running under WSL2
+# WSL2 notes — drive Linux GUI from WSL2, or drive Windows by running the server on Windows
 
-WSL2 ships **WSLg**: a *virtual* display (Weston/Wayland + Xwayland) and a
-*virtual* audio stack (a **PulseAudio** server bridged to Windows), both
-**separate from the Windows desktop**. That single fact decides what runs where.
-
-| You want to drive… | Run the server… | Why |
-|---|---|---|
-| the **Windows desktop** | **on Windows** | WSL2 cannot see/capture the Windows desktop |
-| **voice** (mic/speakers) reliably | **on Windows** | native audio + SAPI5, no WSLg quirks |
-| **Linux GUI apps** inside WSLg | in WSL2 | only WSLg apps are visible there |
-| **voice** while staying in WSL2 | in WSL2 | works via WSLg PulseAudio (with caveats) |
+## Key point
+- **WSLg apps ≠ Windows desktop apps**. WSLg exposes the **Linux** GUI into Windows,
+  but it does **not** let a Linux process control the native Windows desktop.
+- Therefore:
+  - To drive **Linux GUI apps** from WSL2 → run `desktop-control` **inside WSL2**.
+  - To drive the **Windows desktop/apps** from a WSL2-based agent → either
+    1) run `desktop-control` **on Windows** (best), or
+    2) delegate the whole task to a **Windows-side agent** via `bridge/`.
 
 ---
 
-## Scheme B (recommended): agent in WSL2 + servers on Windows
+## Scheme B (recommended): control the Windows desktop from WSL2 by running the server on Windows
 
-Claude Code runs in WSL2; the MCP servers run as **Windows** processes (so they
-see the Windows desktop and use native audio). Two transports:
+Because Windows Python can be launched from WSL via `python.exe`, you can keep
+your agent in WSL2 but run the MCP server as a **Windows process**, which then
+uses the real Windows backend (`pyautogui`, UI Automation, etc.).
 
-### B.1 stdio via interop (simplest)
-Claude Code (WSL2) spawns `python.exe`, which is the **Windows** Python — it runs
-on Windows and drives the Windows desktop. `.mcp.json`:
-
+### B.1 stdio transport (recommended)
+In your MCP client config inside WSL2:
 ```json
 {
   "mcpServers": {
     "desktop-control": {
       "command": "python.exe",
-      "args": ["C:\\\\Users\\\\you\\\\mcp-desktop-control\\\\server.py"],
+      "args": ["C:\\Users\\you\\mcp-desktop-control\\server.py"],
       "env": { "MCP_DESKTOP_MAX_DIM": "1280" }
-    },
-    "voice": {
-      "command": "python.exe",
-      "args": ["C:\\\\Users\\\\you\\\\mcp-desktop-control\\\\voice\\\\server.py"],
-      "env": { "MCP_VOICE_LANG": "fr" }
     }
   }
 }
 ```
-Install the deps with the **Windows** Python first:
-```powershell
-py -m pip install -r requirements.txt
-py -m pip install -r voice\requirements.txt
-```
 
-### B.2 SSE (decoupled)
-Start the servers on Windows, connect Claude Code (WSL2) over HTTP/SSE:
+### B.2 SSE transport (also works)
+Start the Windows server:
 ```powershell
 python server.py --sse                 # desktop-control → :8000
 set MCP_DESKTOP_TRANSPORT=sse & python voice\server.py   # voice (use a 2nd port if needed)
@@ -62,12 +49,12 @@ set MCP_DESKTOP_TRANSPORT=sse & python voice\server.py   # voice (use a 2nd port
 > Automation). No WSL2-specific change is needed — the design already supports
 > being launched as a Windows process from WSL2.
 
-### B.3 Delegate from WSL2 to a Windows Claude (`bridge/`)
-Instead of (or alongside) running servers on Windows, a **WSL2 Claude can hand a
-whole task to a Windows AI agent** via the `windows-agent-bridge` MCP server
+### B.3 Delegate from WSL2 to a Windows agent (`bridge/`)
+Instead of (or alongside) running servers on Windows, a WSL2 client can hand a
+whole task to a Windows AI agent via the `windows-agent-bridge` MCP server
 (`ask_windows_agent`), using either CLI or API mode. The Windows agent — with
-the desktop-control / voice servers configured — does the
-GUI/voice work and returns the result. See `bridge/README.md`.
+the desktop-control / voice servers configured — does the GUI/voice work and
+returns the result. See `bridge/README.md`.
 
 ---
 
@@ -97,12 +84,3 @@ python -m pip install -r voice/requirements.txt
 ```bash
 MCP_VOICE_TTS=espeak MCP_VOICE_ESPEAK_VOICE=fr python voice/smoke_test.py
 ```
-
-### Caveats
-- **Microphone** capture under WSLg depends on the Windows 11 build and the
-  default source; it is sometimes unavailable or noisy. If so, prefer Scheme B
-  (voice server on Windows).
-- **Latency**: local Whisper on CPU adds a few seconds (use a smaller model).
-- `desktop-control` in WSL2 only sees the **WSLg** display (Linux apps), and the
-  Wayland input path (`grim`/`ydotool`) is poorly supported under Weston — not
-  recommended for GUI control here.

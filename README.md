@@ -67,6 +67,8 @@ See `mcp.json.example` for project-scope `.mcp.json` blocks.
 | `type_text` / `press_key` / `hotkey` | keyboard |
 | `wait` | pause (≤30s) |
 | `ui_tree` / `ui_click` | accessibility tree dump / click by name (UIA or AT-SPI) |
+| `guide_start` / `guide_status` / `guide_step` / `guide_confirm` | resumable human-guided flows |
+| `guide_wait` / `guide_capture_response` | pause for the user and capture their response |
 
 ### Coordinate model
 Screenshots are scaled so the longest side ≤ `MCP_DESKTOP_MAX_DIM` (default
@@ -78,20 +80,19 @@ mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 
 | Variable | Default | Effect |
 |---|---|---|
-| `MCP_DESKTOP_MAX_DIM` | `1280` | max screenshot side (tokens vs detail) |
-| `MCP_DESKTOP_DRY_RUN` | `0` | `1` = actions are logged no-ops (perception still works) |
-| `MCP_DESKTOP_PAUSE` | `0.05` | inter-action delay (s), X11/Windows |
-| `MCP_DESKTOP_TRANSPORT` | `stdio` | `sse` to serve over HTTP |
+| `MCP_DESKTOP_MAX_DIM` | `1280` | max screenshot side (px) |
+| `MCP_DESKTOP_DRY_RUN` | `0` | if `1`, don't actually move/click/type |
+| `MCP_DESKTOP_TRANSPORT` | `stdio` | `stdio` or `sse` |
 
-## 5. Safety
+## 5. Voice-driven loop (optional)
 
-- **FAILSAFE on** (Windows/X11): slam the mouse into a corner to abort.
-- Start with `MCP_DESKTOP_DRY_RUN=1` to rehearse without acting.
-- Real machine = **irreversible side effects**: the client should **confirm
-  risky actions** (close/delete/submit).
-- **Test on a VM / throwaway session** first.
-- Set expected display **scaling/resolution**; DPI awareness is enabled on
-  Windows so coordinates match physical pixels.
+See **`voice/README.md`** for prerequisites, configuration, and the local/offline
+voice loop:
+
+- wake word / speech capture
+- STT (Whisper)
+- agent round-trip
+- TTS playback
 
 ## 6. Limits
 
@@ -108,6 +109,7 @@ all local. See **`voice/README.md`**.
 
 ## 8. WSL2 → Windows delegation (optional) — `bridge/`
 
-`ask_windows_agent` lets a **WSL2** orchestrator delegate a task to a **Windows**
+`ask_windows_agent` lets a **WSL2** client delegate a task to a **Windows**
 agent (Claude/OpenAI/Mistral/Copilot; CLI or API), so the Windows side can drive
-desktop/voice while WSL2 orchestrates. See **`bridge/README.md`** and `WSL2.md`.
+desktop/voice while WSL2 orchestrates. The legacy tool name `ask_windows_claude`
+remains available for compatibility. See **`bridge/README.md`** and `WSL2.md`.

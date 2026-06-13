@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-bridge/ask.py — CLI to delegate a one-shot task to a Windows AI agent.
+bridge/ask.py — CLI to delegate a one-shot task to a Windows-side agent.
 
 Same engine as the MCP tool, handy to validate the WSL2 -> Windows bridge before
-wiring it into Claude Code.
+wiring it into your MCP client.
 
     python bridge/ask.py "Open Notepad and type hello" \
         --allowed-tools "mcp__desktop-control__*" --permission-mode bypassPermissions
@@ -19,7 +19,7 @@ from server import ask_windows_agent
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Delegate a task to a Windows AI agent.")
+    ap = argparse.ArgumentParser(description="Delegate a task to a Windows-side agent.")
     ap.add_argument("prompt")
     ap.add_argument("--provider", default="claude", help="claude/openai/mistral/copilot/custom")
     ap.add_argument("--interface", default="cli", help="cli/api")
