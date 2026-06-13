@@ -52,11 +52,27 @@ python voice/loop.py
 | `MCP_VOICE_WHISPER_MODEL` | `base` | STT model size (tiny/base/small/medium/large) |
 | `MCP_VOICE_LANG` | auto | language hint, e.g. `fr`/`en` |
 | `MCP_VOICE_SR` | `16000` | capture sample rate |
-| `MCP_VOICE_TTS` | `pyttsx3` | `pyttsx3` or `piper` |
-| `MCP_VOICE_RATE` | — | pyttsx3 speech rate (wpm) |
+| `MCP_VOICE_TTS` | `pyttsx3` | `pyttsx3` \| `espeak` \| `piper` |
+| `MCP_VOICE_RATE` | — | speech rate (pyttsx3 wpm / espeak `-s`) |
+| `MCP_VOICE_ESPEAK_BIN` / `MCP_VOICE_ESPEAK_VOICE` | `espeak-ng` / — | espeak engine & voice (e.g. `fr`) |
 | `MCP_VOICE_PIPER_BIN` / `MCP_VOICE_PIPER_MODEL` | `piper` / — | Piper voice |
+| `MCP_VOICE_INPUT_DEVICE` / `MCP_VOICE_OUTPUT_DEVICE` | — | sounddevice in/out (index or name substring) |
 | `MCP_VOICE_WAKE` | — | openWakeWord model; empty = push-to-talk |
 | `MCP_VOICE_AGENT_CMD` | `claude -p` | agent invoked by the loop |
+
+## Validate the audio chain
+
+```bash
+python voice/smoke_test.py     # lists devices, TTS → record → STT → speak back
+```
+
+## WSL2 (WSLg)
+
+Voice works inside WSL2 via the WSLg PulseAudio bridge — install
+`libportaudio2 libasound2-plugins espeak-ng pulseaudio-utils`, prefer
+`MCP_VOICE_TTS=espeak`, and set the input/output devices if needed. The
+microphone can be flaky under WSLg; the more reliable option is to run this
+server **on Windows** while the agent runs in WSL2. Full guide: **`../WSL2.md`**.
 
 ## Notes & caveats
 

@@ -41,6 +41,10 @@ The server must run on the machine being driven. Two ways to wire it to Claude C
 - **SSE** (you launch it): `python server.py --sse` → `http://127.0.0.1:8000/sse`,
   then connect the client to that URL.
 
+> **WSL2 users**: WSLg can't see the Windows desktop, so to drive Windows run the
+> server **on Windows** (via `python.exe` or SSE). See **`WSL2.md`** for ready
+> configs and the voice-in-WSL2 path.
+
 ```bash
 # stdio
 claude mcp add desktop-control -- python3 /path/to/server.py            # Linux
