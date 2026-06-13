@@ -85,7 +85,7 @@ cd ~/Sources/mcp-desktop-control
 python3 -m pip install --user mcp        # ou dans un venv WSL
 
 # claude.exe doit être joignable depuis WSL (interop) :
-which claude.exe || echo "PATH Windows non hérité → fixer ASK_WIN_CLAUDE_BIN"
+which claude.exe || echo "PATH Windows non hérité → fixer ASK_WIN_AGENT_BIN ou ASK_WIN_CLAUDE_CLI_CMD (ASK_WIN_CLAUDE_BIN accepté en legacy)"
 
 claude mcp add windows-agent-bridge -- python3 ~/Sources/mcp-desktop-control/bridge/server.py
 ```
