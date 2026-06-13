@@ -71,7 +71,10 @@ def _coerce_dict(value) -> dict:
     s = str(value).strip()
     if not s:
         return {}
-    return json.loads(s)
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        return {}
 
 
 def _format_template(value, variables: dict[str, str]):
