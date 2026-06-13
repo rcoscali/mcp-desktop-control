@@ -14,7 +14,7 @@
       "command": "python.exe",
       "args": ["C:\\\\Users\\\\you\\\\mcp-desktop-control\\\\server.py"],
       "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" },
-      "comment": "Use Mirror WSL2 networking with localhost sharing (see M$ docs for this)"
+      "_comment": "Use Mirror WSL2 networking with localhost sharing (see M$ docs for this)"
     },
 
     "desktop-control-sse": {
