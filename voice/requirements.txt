@@ -1,0 +1,18 @@
+# Offline voice I/O (STT + TTS). Heavy & optional — install only if you use the
+# voice MCP server or the hands-free loop. Install on top of the base
+# requirements.txt:   python -m pip install -r voice/requirements.txt
+
+mcp>=1.2.0
+faster-whisper>=1.0.0      # local STT (CTranslate2 Whisper)
+sounddevice>=0.4.6         # microphone capture (needs PortAudio, see README)
+soundfile>=0.12.1          # wav I/O (Piper playback)
+numpy>=1.24
+pyttsx3>=2.90              # offline TTS (SAPI5 on Windows, espeak on Linux)
+
+# Optional:
+webrtcvad>=2.0.10          # voice-activity endpointing (stop on silence)
+# openwakeword>=0.6.0      # wake-word trigger; otherwise push-to-talk is used
+
+# System packages (NOT pip):
+#   Linux  : libportaudio2 (sounddevice), espeak-ng (pyttsx3), optionally piper
+#   Windows: PortAudio ships in the sounddevice wheel; SAPI5 is built in

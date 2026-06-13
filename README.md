@@ -92,3 +92,10 @@ mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 - Multi-monitor: primary/virtual screen.
 - Wayland input is restricted (see §1); X11 or AT-SPI recommended.
 - Latency: each step is a screenshot→decide→act round-trip.
+
+## 7. Voice (optional) — `voice/`
+
+Offline **voice command** (STT) and **spoken responses** (TTS): a `voice` MCP
+server (`speak` / `listen` / `transcribe_file`) plus a hands-free loop
+(wake word → record → agent → speak). Engines: faster-whisper + pyttsx3/Piper,
+all local. See **`voice/README.md`**.

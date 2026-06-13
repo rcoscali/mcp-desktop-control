@@ -20,6 +20,13 @@
       "_when": "You start the server yourself on the target: `python server.py --sse`, then connect over HTTP/SSE (Windows or Linux).",
       "type": "sse",
       "url": "http://localhost:8000/sse"
+    },
+
+    "voice": {
+      "_when": "Offline speech I/O (speak/listen/transcribe_file). Needs voice/requirements.txt. Pair with a desktop-control server for a voice-driven GUI agent.",
+      "command": "python3",
+      "args": ["/home/you/mcp-desktop-control/voice/server.py"],
+      "env": { "MCP_VOICE_WHISPER_MODEL": "base", "MCP_VOICE_LANG": "fr" }
     }
   }
 }
