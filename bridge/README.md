@@ -30,6 +30,7 @@ Pass the returned `session_id` back as `resume` to continue the same Windows ses
 python bridge/ask.py "What is your working directory?" --json
 python bridge/ask.py "Open Notepad and type hello" \
     --allowed-tools "mcp__desktop-control__*" --permission-mode bypassPermissions
+# API mode
 python bridge/ask.py "Summarize this text" --provider openai --interface api \
     --api-url "https://api.openai.com/v1/chat/completions" --api-key "$OPENAI_API_KEY" \
     --api-body '{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"{prompt}"}]}'
