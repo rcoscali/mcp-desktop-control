@@ -530,7 +530,20 @@ def ask_windows_agent(
     - api       : POST api_url with api_headers/api_body (templated with {prompt}/{model})
 
     Returns {is_error, result, session_id, num_turns, total_cost_usd}.
+
+    Security: cli_command, cli_args_template, api_url, api_key, api_headers, and api_body
+    are accepted only when ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES=1 is set in the environment.
+    Without that flag these values are ignored and env-only configuration is used, to
+    prevent arbitrary command execution or SSRF from an untrusted orchestrator.
     """
+    if not os.environ.get("ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES"):
+        cli_command = None
+        cli_args_template = None
+        api_url = None
+        api_key = None
+        api_headers = None
+        api_body = None
+
     p = _normalize_provider(provider)
     itf = (interface or "cli").strip().lower()
     if itf == "api":
