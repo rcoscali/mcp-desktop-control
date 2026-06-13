@@ -111,6 +111,10 @@ def _render_template_tokens(
     tokens: list[str],
     values: dict[str, str | list[str] | None],
 ) -> list[str]:
+    class _PreserveUnknown(dict):
+        def __missing__(self, key):
+            return "{" + key + "}"
+
     text_values = {
         key: "" if isinstance(value, list) or value is None else str(value)
         for key, value in values.items()
@@ -125,7 +129,7 @@ def _render_template_tokens(
             if value:
                 argv.append(str(value))
             continue
-        rendered = token.format_map(text_values)
+        rendered = token.format_map(_PreserveUnknown(text_values))
         if rendered:
             argv.append(rendered)
     return argv

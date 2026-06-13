@@ -98,6 +98,14 @@ class BridgeServerTests(unittest.TestCase):
             ["codex.exe", "exec", "--json", "gpt-5", "open notepad and say hello"],
         )
 
+    def test_custom_agent_template_preserves_unknown_placeholders(self):
+        os.environ["ASK_WIN_AGENT_BIN"] = "codex.exe"
+        os.environ["ASK_WIN_AGENT_ARGS"] = "exec --json --foo={bar} {prompt}"
+
+        argv = self.server._build_windows_agent_argv("hello")
+
+        self.assertEqual(argv, ["codex.exe", "exec", "--json", "--foo={bar}", "hello"])
+
     def test_normalize_generic_json_payload(self):
         result = self.server._normalize_agent_result(
             {"content": "done", "sessionId": "abc", "turns": 2}
