@@ -231,7 +231,7 @@ def _run_api_agent(
     vars_ = {"prompt": prompt, "model": model or _env(provider, "MODEL", "") or ""}
     headers = _coerce_dict(api_headers or _env(provider, "API_HEADERS"))
     token = api_key or _env(provider, "API_KEY")
-    if token and "Authorization" not in headers:
+    if token and not any(k.lower() == "authorization" for k in headers):
         headers["Authorization"] = "Bearer " + token
     headers.setdefault("Content-Type", "application/json")
 
