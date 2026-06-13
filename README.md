@@ -67,12 +67,31 @@ See `mcp.json.example` for project-scope `.mcp.json` blocks.
 | `type_text` / `press_key` / `hotkey` | keyboard |
 | `wait` | pause (≤30s) |
 | `ui_tree` / `ui_click` | accessibility tree dump / click by name (UIA or AT-SPI) |
+| `guide_start` / `guide_status` | start/resume and inspect a human-guidance session |
+| `guide_step` | present next operator step (goal + manual action + resume signal) |
+| `guide_confirm` | require explicit confirmation for risky actions |
+| `guide_wait` | wait while the operator performs a manual step |
+| `guide_capture_response` | store a short operator answer and optional expected match |
 
 ### Coordinate model
 Screenshots are scaled so the longest side ≤ `MCP_DESKTOP_MAX_DIM` (default
 1280). **All click/move/drag coordinates are in the returned screenshot's pixel
 space**; the server converts them to real pixels. Call `screen_size()` for the
 mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
+
+### Guided “Help me to do …” mode
+The guidance tools add a mixed-initiative workflow on top of desktop automation:
+- the agent explains the next step (`guide_step`)
+- the human executes guarded/manual work (login, MFA, captcha, approvals, hardware steps)
+- the agent waits/captures confirmation (`guide_wait`, `guide_confirm`, `guide_capture_response`)
+- the agent verifies progress with `screenshot` / `ui_tree` before continuing
+
+`guide_step(..., speak=True)` can also try local TTS (best effort) to read instructions aloud.
+
+### Example guided workflows
+- **Help me log in**: `guide_start` → `guide_step` (enter credentials/MFA manually) → `guide_wait` → verify with `screenshot`/`ui_tree`.
+- **Help me fill this form**: alternate between agent-driven field targeting and `guide_step` for sensitive fields, then `guide_confirm` before submit.
+- **Guide me through a Windows setup task**: use `guide_step` for human actions and validate each milestone from the screen before moving to the next step.
 
 ## 4. Configuration (env)
 
@@ -82,6 +101,8 @@ mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 | `MCP_DESKTOP_DRY_RUN` | `0` | `1` = actions are logged no-ops (perception still works) |
 | `MCP_DESKTOP_PAUSE` | `0.05` | inter-action delay (s), X11/Windows |
 | `MCP_DESKTOP_TRANSPORT` | `stdio` | `sse` to serve over HTTP |
+| `MCP_DESKTOP_GUIDE_CONFIRM_WORDS` | built-in list | comma-separated tokens accepted by `guide_confirm` as explicit approval |
+| `MCP_DESKTOP_GUIDE_REJECT_WORDS` | built-in list | comma-separated tokens accepted by `guide_confirm` as explicit rejection |
 
 ## 5. Safety
 

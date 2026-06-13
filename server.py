@@ -32,7 +32,11 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import sys
+import time
+import uuid
+from datetime import datetime, timezone
 
 from mcp.server.fastmcp import FastMCP, Image
 
@@ -43,6 +47,24 @@ MAX_DIM = int(os.environ.get("MCP_DESKTOP_MAX_DIM", "1280"))
 
 mcp = FastMCP("desktop-control")
 _backend: backends.Backend | None = None
+_guidance_sessions: dict[str, dict] = {}
+_guide_tts_engine = None
+GUIDE_MAX_WAIT_SECONDS = 120.0
+
+
+def _token_set(env_name: str, default: str) -> set[str]:
+    raw = os.environ.get(env_name, default)
+    return {t.strip().lower() for t in raw.split(",") if t.strip()}
+
+
+GUIDE_CONFIRM_WORDS = _token_set(
+    "MCP_DESKTOP_GUIDE_CONFIRM_WORDS",
+    "yes,y,ok,okay,confirm,confirmed,proceed,continue,approved,approve,oui,confirmer,continuer",
+)
+GUIDE_REJECT_WORDS = _token_set(
+    "MCP_DESKTOP_GUIDE_REJECT_WORDS",
+    "no,n,cancel,stop,abort,deny,rejected,non,annuler,arreter,arrêter",
+)
 
 
 def _be() -> backends.Backend:
@@ -72,6 +94,42 @@ def _png_bytes(img) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _guidance_error(msg: str) -> dict:
+    return {"ok": False, "error": msg}
+
+
+def _guidance_session(session_id: str) -> dict | None:
+    return _guidance_sessions.get(session_id)
+
+
+def _speak_optional(text: str) -> dict:
+    global _guide_tts_engine
+    if not text.strip():
+        return {"spoken": False, "speech_error": "empty text"}
+    try:
+        import pyttsx3  # type: ignore
+
+        if _guide_tts_engine is None:
+            _guide_tts_engine = pyttsx3.init()
+        _guide_tts_engine.say(text)
+        _guide_tts_engine.runAndWait()
+        return {"spoken": True, "speech_error": None}
+    except Exception as e:  # noqa: BLE001
+        return {"spoken": False, "speech_error": str(e)}
+
+
+def _is_confirmed(response: str) -> bool:
+    return response.strip().lower() in GUIDE_CONFIRM_WORDS
+
+
+def _is_rejected(response: str) -> bool:
+    return response.strip().lower() in GUIDE_REJECT_WORDS
 
 
 # --- perception -------------------------------------------------------------
@@ -246,6 +304,248 @@ def ui_click(name: str, window_title: str | None = None,
              control_type: str | None = None) -> str:
     """Find a control by (partial) name via accessibility and click its center."""
     return _be().a11y_click(name, window_title, control_type)
+
+
+# --- human operator guidance -------------------------------------------------
+@mcp.tool()
+def guide_start(goal: str, context: str | None = None, session_id: str | None = None) -> dict:
+    """Start (or resume) a step-by-step human operator guidance session."""
+    if not goal.strip():
+        return _guidance_error("goal is required")
+
+    sid = session_id or f"guide-{uuid.uuid4()}"
+    existing = _guidance_session(sid)
+    if existing:
+        return {
+            "ok": True,
+            "resumed": True,
+            "session_id": sid,
+            "goal": existing["goal"],
+            "steps_total": len(existing["steps"]),
+            "events_total": len(existing["events"]),
+            "updated_at": existing["updated_at"],
+        }
+
+    now = _now_iso()
+    _guidance_sessions[sid] = {
+        "session_id": sid,
+        "goal": goal.strip(),
+        "context": (context or "").strip(),
+        "steps": [],
+        "events": [],
+        "created_at": now,
+        "updated_at": now,
+    }
+    return {
+        "ok": True,
+        "resumed": False,
+        "session_id": sid,
+        "goal": goal.strip(),
+        "context": (context or "").strip(),
+        "next_hint": "Call guide_step(...) to present the next action to the operator.",
+    }
+
+
+@mcp.tool()
+def guide_status(session_id: str) -> dict:
+    """Return the current status of a guidance session for resumable workflows."""
+    s = _guidance_session(session_id)
+    if not s:
+        return _guidance_error(f"unknown session_id '{session_id}'")
+    last_step = s["steps"][-1] if s["steps"] else None
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "goal": s["goal"],
+        "context": s["context"],
+        "steps_total": len(s["steps"]),
+        "events_total": len(s["events"]),
+        "last_step": last_step,
+        "created_at": s["created_at"],
+        "updated_at": s["updated_at"],
+    }
+
+
+@mcp.tool()
+def guide_step(
+    session_id: str,
+    goal: str,
+    operator_action: str,
+    resume_signal: str,
+    expected_outcome: str | None = None,
+    risky: bool = False,
+    speak: bool = False,
+) -> dict:
+    """Present the next human step with goal/action/resume signal."""
+    s = _guidance_session(session_id)
+    if not s:
+        return _guidance_error(f"unknown session_id '{session_id}'")
+    if not goal.strip() or not operator_action.strip() or not resume_signal.strip():
+        return _guidance_error("goal, operator_action, and resume_signal are required")
+
+    step_number = len(s["steps"]) + 1
+    instruction = (
+        f"Step {step_number}\n"
+        f"- Goal: {goal.strip()}\n"
+        f"- Operator action: {operator_action.strip()}\n"
+        f"- Resume signal: {resume_signal.strip()}"
+    )
+    if expected_outcome and expected_outcome.strip():
+        instruction += f"\n- Expected outcome: {expected_outcome.strip()}"
+    if risky:
+        instruction += (
+            "\n- Safety: This is a risky action. Require explicit operator confirmation "
+            "with guide_confirm(...) before executing any irreversible action."
+        )
+
+    speech = {"spoken": False, "speech_error": None}
+    if speak:
+        speech = _speak_optional(instruction)
+
+    record = {
+        "type": "step",
+        "step_number": step_number,
+        "goal": goal.strip(),
+        "operator_action": operator_action.strip(),
+        "resume_signal": resume_signal.strip(),
+        "expected_outcome": (expected_outcome or "").strip(),
+        "risky": risky,
+        "instruction": instruction,
+        "spoken": speech["spoken"],
+        "speech_error": speech["speech_error"],
+        "created_at": _now_iso(),
+    }
+    s["steps"].append(record)
+    s["events"].append(record)
+    s["updated_at"] = _now_iso()
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "step_number": step_number,
+        "instruction": instruction,
+        "risky": risky,
+        "spoken": speech["spoken"],
+        "speech_error": speech["speech_error"],
+    }
+
+
+@mcp.tool()
+def guide_confirm(
+    session_id: str,
+    action: str,
+    operator_response: str,
+    require_explicit_yes: bool = True,
+) -> dict:
+    """Capture operator confirmation for risky actions."""
+    s = _guidance_session(session_id)
+    if not s:
+        return _guidance_error(f"unknown session_id '{session_id}'")
+    if not action.strip():
+        return _guidance_error("action is required")
+    if not operator_response.strip():
+        return _guidance_error("operator_response is required")
+
+    if require_explicit_yes:
+        confirmed = _is_confirmed(operator_response)
+    else:
+        confirmed = not _is_rejected(operator_response)
+    event = {
+        "type": "confirm",
+        "action": action.strip(),
+        "operator_response": operator_response.strip(),
+        "require_explicit_yes": require_explicit_yes,
+        "confirmed": confirmed,
+        "created_at": _now_iso(),
+    }
+    s["events"].append(event)
+    s["updated_at"] = _now_iso()
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "action": action.strip(),
+        "confirmed": confirmed,
+        "next_hint": (
+            "Safe to continue the action."
+            if confirmed
+            else "Do not execute the action yet; ask the operator again."
+        ),
+    }
+
+
+@mcp.tool()
+def guide_wait(session_id: str, reason: str, seconds: float = 2.0) -> dict:
+    """Wait for the operator to complete a manual action (capped at 120s)."""
+    s = _guidance_session(session_id)
+    if not s:
+        return _guidance_error(f"unknown session_id '{session_id}'")
+    if not reason.strip():
+        return _guidance_error("reason is required")
+    seconds = max(0.0, min(seconds, GUIDE_MAX_WAIT_SECONDS))
+    time.sleep(seconds)
+    event = {
+        "type": "wait",
+        "reason": reason.strip(),
+        "seconds": seconds,
+        "created_at": _now_iso(),
+    }
+    s["events"].append(event)
+    s["updated_at"] = _now_iso()
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "waited_seconds": seconds,
+        "reason": reason.strip(),
+    }
+
+
+@mcp.tool()
+def guide_capture_response(
+    session_id: str,
+    question: str,
+    response: str,
+    expected_substring: str | None = None,
+    match_mode: str = "substring",
+) -> dict:
+    """Collect a short operator response and optionally validate it."""
+    s = _guidance_session(session_id)
+    if not s:
+        return _guidance_error(f"unknown session_id '{session_id}'")
+    if not question.strip():
+        return _guidance_error("question is required")
+    if not response.strip():
+        return _guidance_error("response is required")
+
+    mode = match_mode.strip().lower()
+    if mode not in {"substring", "word", "exact"}:
+        return _guidance_error("match_mode must be one of: substring, word, exact")
+
+    expected = (expected_substring or "").strip().lower()
+    response_lc = response.strip().lower()
+    if not expected:
+        matches_expected = True
+    elif mode == "exact":
+        matches_expected = response_lc == expected
+    elif mode == "word":
+        matches_expected = expected in set(re.findall(r"\b\w+\b", response_lc))
+    else:
+        matches_expected = expected in response_lc
+    event = {
+        "type": "response",
+        "question": question.strip(),
+        "response": response.strip(),
+        "expected_substring": expected_substring or "",
+        "match_mode": mode,
+        "matches_expected": matches_expected,
+        "created_at": _now_iso(),
+    }
+    s["events"].append(event)
+    s["updated_at"] = _now_iso()
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "response": response.strip(),
+        "matches_expected": matches_expected,
+    }
 
 
 def _main() -> None:
