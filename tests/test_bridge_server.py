@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import os
 from pathlib import Path
 import sys
@@ -104,6 +105,19 @@ class BridgeServerTests(unittest.TestCase):
         self.assertEqual(result["session_id"], "abc")
         self.assertEqual(result["num_turns"], 2)
         self.assertFalse(result["is_error"])
+
+    def test_ask_windows_agent_does_not_expose_command_or_api_overrides(self):
+        parameters = inspect.signature(self.server.ask_windows_agent).parameters
+
+        for name in (
+            "cli_command",
+            "cli_args_template",
+            "api_url",
+            "api_key",
+            "api_headers",
+            "api_body",
+        ):
+            self.assertNotIn(name, parameters)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ import argparse
 import json
 import sys
 
-from server import ask_windows_agent
+from server import _ask_windows_agent
 
 
 def main() -> int:
@@ -39,7 +39,7 @@ def main() -> int:
     ap.add_argument("--json", action="store_true", help="print the full JSON result")
     args = ap.parse_args()
 
-    res = ask_windows_agent(
+    res = _ask_windows_agent(
         args.prompt,
         provider=args.provider,
         interface=args.interface,

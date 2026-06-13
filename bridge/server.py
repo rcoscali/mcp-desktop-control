@@ -502,9 +502,7 @@ def _run_api_agent(
     result["raw"] = data
     return result
 
-
-@mcp.tool()
-def ask_windows_agent(
+def _ask_windows_agent(
     prompt: str,
     provider: str = "claude",
     interface: str = "cli",
@@ -543,7 +541,6 @@ def ask_windows_agent(
         api_key = None
         api_headers = None
         api_body = None
-
     p = _normalize_provider(provider)
     itf = (interface or "cli").strip().lower()
     if itf == "api":
@@ -569,6 +566,42 @@ def ask_windows_agent(
         timeout=timeout,
         cli_command=cli_command,
         cli_args_template=cli_args_template,
+    )
+
+
+@mcp.tool()
+def ask_windows_agent(
+    prompt: str,
+    provider: str = "claude",
+    interface: str = "cli",
+    allowed_tools: list[str] | None = None,
+    permission_mode: str | None = None,
+    resume: str | None = None,
+    cwd: str | None = None,
+    add_dir: list[str] | None = None,
+    model: str | None = None,
+    timeout: int = 600,
+) -> dict:
+    """Delegate a task to a Windows agent (Claude/OpenAI/Mistral/Copilot/custom).
+
+    - provider  : claude | openai | mistral | copilot | custom
+    - interface : cli | api
+    - cli       : use env-configured CLI command/args
+    - api       : POST env-configured URL with env-configured headers/body (templated with {prompt}/{model})
+
+    Returns {is_error, result, session_id, num_turns, total_cost_usd}.
+    """
+    return _ask_windows_agent(
+        prompt,
+        provider=provider,
+        interface=interface,
+        allowed_tools=allowed_tools,
+        permission_mode=permission_mode,
+        resume=resume,
+        cwd=cwd,
+        add_dir=add_dir,
+        model=model,
+        timeout=timeout,
     )
 
 
