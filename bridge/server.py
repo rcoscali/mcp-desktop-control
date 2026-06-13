@@ -83,15 +83,17 @@ def _run_windows_claude(
         proc = subprocess.run(
             argv, capture_output=True, text=True, timeout=timeout, cwd=cwd
         )
-    except FileNotFoundError:
-        return {
-            "is_error": True,
-            "error": f"'{binary}' not found. Install Claude Code on Windows and "
-            "ensure claude.exe is on the WSL PATH (Windows interop), or set "
-            "ASK_WIN_CLAUDE_BIN.",
-        }
     except subprocess.TimeoutExpired:
         return {"is_error": True, "error": f"timed out after {timeout}s"}
+    except OSError as e:
+        # FileNotFoundError, PermissionError, … — claude.exe not launchable.
+        return {
+            "is_error": True,
+            "error": f"cannot launch '{binary}' ({e.__class__.__name__}: {e}). "
+            "Install Claude Code on Windows and make sure claude.exe is on the WSL "
+            "PATH (Windows interop) and executable, or set ASK_WIN_CLAUDE_BIN to "
+            "its full path (e.g. /mnt/c/Users/<you>/.../claude.exe).",
+        }
 
     out = (proc.stdout or "").strip()
     # `--output-format json` prints a single result object.
