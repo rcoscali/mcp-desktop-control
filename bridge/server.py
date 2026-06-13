@@ -135,7 +135,6 @@ def _expand_arg_template(template: str, values: dict[str, str | list[str] | None
     """Expand a shell-style argv template without splitting placeholder values."""
     return _render_template_tokens(shlex.split(template), values)
 
-
 def _format_template(value, variables: dict[str, str]):
     if isinstance(value, str):
         try:
