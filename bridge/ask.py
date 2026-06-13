@@ -29,12 +29,16 @@ def main() -> int:
     ap.add_argument("--cwd", default=None)
     ap.add_argument("--add-dir", nargs="*", default=None)
     ap.add_argument("--model", default=None)
-    ap.add_argument("--cli-command", default=None)
-    ap.add_argument("--cli-args-template", default=None)
-    ap.add_argument("--api-url", default=None)
-    ap.add_argument("--api-key", default=None)
-    ap.add_argument("--api-headers", default=None, help="JSON object")
-    ap.add_argument("--api-body", default=None, help="JSON object")
+    ap.add_argument("--cli-command", default=None, help="override CLI command (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)")
+    ap.add_argument(
+        "--cli-args-template",
+        default=None,
+        help="override CLI args template (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)",
+    )
+    ap.add_argument("--api-url", default=None, help="override API URL (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)")
+    ap.add_argument("--api-key", default=None, help="override API key (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)")
+    ap.add_argument("--api-headers", default=None, help="JSON object (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)")
+    ap.add_argument("--api-body", default=None, help="JSON object (requires ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES)")
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--json", action="store_true", help="print the full JSON result")
     args = ap.parse_args()
