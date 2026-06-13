@@ -12,8 +12,8 @@
     "desktop-control-windows-stdio": {
       "_when": "Driving the Windows desktop. Works from WSL too: 'python.exe' runs the Windows Python via interop.",
       "command": "python.exe",
-      "args": ["C:\\\\Users\\\\you\\\\mcp-desktop-control\\\\server.py"],
-      "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" },
+      "args": ["C:\\Users\\you\\mcp-desktop-control\\server.py"],
+      "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" }
     },
 
     "desktop-control-sse": {
@@ -29,8 +29,8 @@
       "env": { "MCP_VOICE_WHISPER_MODEL": "base", "MCP_VOICE_LANG": "fr" }
     },
 
-    "windows-claude-bridge": {
-      "_when": "Run in WSL2: delegate a task to a Windows-side headless agent. Defaults to Claude Code, but you can swap in another CLI with ASK_WIN_AGENT_BIN / ASK_WIN_AGENT_ARGS.",
+    "windows-agent-bridge": {
+      "_when": "Run in WSL2: delegate a task to a Windows agent (Claude/OpenAI/Mistral/Copilot) via CLI or API, so the WSL2 orchestrator can act on the Windows side (desktop/voice).",
       "command": "python3",
       "args": ["/home/you/mcp-desktop-control/bridge/server.py"],
       "env": { "ASK_WIN_AGENT_BIN": "claude.exe" }

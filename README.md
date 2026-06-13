@@ -1,7 +1,6 @@
 # desktop-control — MCP server (screenshot + keyboard/mouse + accessibility + voice cmds/STT + voice synth/TTS) **[[JUST For Fun]]**
 
-Lets an MCP client (e.g. Claude Code, Gemini CLI, Codex/OpenAI, Copilot, or an
-open-model MCP host) drive a GUI: capture the screen, then
+Lets an MCP client (e.g. Claude Code) drive a GUI: capture the screen, then
 move/click/type and — optionally — target controls **by name** via the OS
 accessibility layer.
 
@@ -36,8 +35,7 @@ Platform extras:
 
 ## 2. Run modes
 
-The server must run on the machine being driven. Two ways to wire it to your MCP
-client:
+The server must run on the machine being driven. Two ways to wire it to Claude Code:
 
 - **stdio** (client launches it). From **WSL** targeting Windows, point the
   command at `python.exe` so the *Windows* Python runs. On native Linux/Windows,
@@ -50,15 +48,13 @@ client:
 > configs and the voice-in-WSL2 path.
 
 ```bash
-# Claude Code example (other clients use the same command / args or SSE URL in
-# their own MCP settings format)
+# stdio
 claude mcp add desktop-control -- python3 /path/to/server.py            # Linux
 claude mcp add desktop-control -- python.exe 'C:\path\to\server.py'     # Windows / from WSL
 # sse
 claude mcp add --transport sse desktop-control http://localhost:8000/sse
 ```
-See `mcp.json.example` for reusable server definitions you can copy into
-`.mcp.json` or translate into another client's MCP settings UI/file.
+See `mcp.json.example` for project-scope `.mcp.json` blocks.
 
 ## 3. Tools
 
@@ -71,11 +67,8 @@ See `mcp.json.example` for reusable server definitions you can copy into
 | `type_text` / `press_key` / `hotkey` | keyboard |
 | `wait` | pause (≤30s) |
 | `ui_tree` / `ui_click` | accessibility tree dump / click by name (UIA or AT-SPI) |
-| `guide_start` / `guide_status` | start/resume and inspect a human-guidance session |
-| `guide_step` | present next operator step (goal + manual action + resume signal) |
-| `guide_confirm` | require explicit confirmation for risky actions |
-| `guide_wait` | wait while the operator performs a manual step |
-| `guide_capture_response` | store a short operator answer and optional expected match |
+| `guide_start` / `guide_status` / `guide_step` / `guide_confirm` | resumable human-guided flows |
+| `guide_wait` / `guide_capture_response` | pause for the user and capture their response |
 
 ### Coordinate model
 Screenshots are scaled so the longest side ≤ `MCP_DESKTOP_MAX_DIM` (default
@@ -83,40 +76,26 @@ Screenshots are scaled so the longest side ≤ `MCP_DESKTOP_MAX_DIM` (default
 space**; the server converts them to real pixels. Call `screen_size()` for the
 mapping. For pixel-fragile UIs, prefer `ui_tree` + `ui_click`.
 
-### Guided “Help me to do …” mode
-The guidance tools add a mixed-initiative workflow on top of desktop automation:
-- the agent explains the next step (`guide_step`)
-- the human executes guarded/manual work (login, MFA, captcha, approvals, hardware steps)
-- the agent waits/captures confirmation (`guide_wait`, `guide_confirm`, `guide_capture_response`)
-- the agent verifies progress with `screenshot` / `ui_tree` before continuing
-
-`guide_step(..., speak=True)` can also try local TTS (best effort) to read instructions aloud.
-
-### Example guided workflows
-- **Help me log in**: `guide_start` → `guide_step` (enter credentials/MFA manually) → `guide_wait` → verify with `screenshot`/`ui_tree`.
-- **Help me fill this form**: alternate between agent-driven field targeting and `guide_step` for sensitive fields, then `guide_confirm` before submit.
-- **Guide me through a Windows setup task**: use `guide_step` for human actions and validate each milestone from the screen before moving to the next step.
-
 ## 4. Configuration (env)
 
 | Variable | Default | Effect |
 |---|---|---|
-| `MCP_DESKTOP_MAX_DIM` | `1280` | max screenshot side (tokens vs detail) |
-| `MCP_DESKTOP_DRY_RUN` | `0` | `1` = actions are logged no-ops (perception still works) |
-| `MCP_DESKTOP_PAUSE` | `0.05` | inter-action delay (s), X11/Windows |
-| `MCP_DESKTOP_TRANSPORT` | `stdio` | `sse` to serve over HTTP |
-| `MCP_DESKTOP_GUIDE_CONFIRM_WORDS` | built-in list | comma-separated tokens accepted by `guide_confirm` as explicit approval |
-| `MCP_DESKTOP_GUIDE_REJECT_WORDS` | built-in list | comma-separated tokens accepted by `guide_confirm` as explicit rejection |
+| `MCP_DESKTOP_MAX_DIM` | `1280` | max screenshot side (px) |
+| `MCP_DESKTOP_DRY_RUN` | `0` | if `1`, don't actually move/click/type |
+| `MCP_DESKTOP_PAUSE` | `0.05` | inter-action delay used by pyautogui |
+| `MCP_DESKTOP_TRANSPORT` | `stdio` | `stdio` or `sse` |
+| `MCP_DESKTOP_GUIDE_CONFIRM_WORDS` | `yes,y,ok,okay,confirm,confirmed,proceed,continue,approved,approve,oui,confirmer,continuer` | comma-separated tokens treated as confirmation in guided flows |
+| `MCP_DESKTOP_GUIDE_REJECT_WORDS` | `no,n,cancel,stop,abort,deny,rejected,non,annuler,arreter,arrêter` | comma-separated tokens treated as rejection in guided flows |
 
-## 5. Safety
+## 5. Voice-driven loop (optional)
 
-- **FAILSAFE on** (Windows/X11): slam the mouse into a corner to abort.
-- Start with `MCP_DESKTOP_DRY_RUN=1` to rehearse without acting.
-- Real machine = **irreversible side effects**: the client should **confirm
-  risky actions** (close/delete/submit).
-- **Test on a VM / throwaway session** first.
-- Set expected display **scaling/resolution**; DPI awareness is enabled on
-  Windows so coordinates match physical pixels.
+See **`voice/README.md`** for prerequisites, configuration, and the local/offline
+voice loop:
+
+- wake word / speech capture
+- STT (Whisper)
+- agent round-trip
+- TTS playback
 
 ## 6. Limits
 
@@ -134,7 +113,6 @@ all local. See **`voice/README.md`**.
 ## 8. WSL2 → Windows delegation (optional) — `bridge/`
 
 `ask_windows_agent` lets a **WSL2** client delegate a task to a **Windows**
-headless agent (Claude by default, configurable for other CLIs), so the Windows
-agent can drive the Windows desktop/voice while WSL2 orchestrates. The legacy
-tool name `ask_windows_claude` remains available for compatibility. See
-**`bridge/README.md`** and `WSL2.md`.
+agent (Claude/OpenAI/Mistral/Copilot; CLI or API), so the Windows side can drive
+desktop/voice while WSL2 orchestrates. The legacy tool name `ask_windows_claude`
+remains available for compatibility. See **`bridge/README.md`** and `WSL2.md`.

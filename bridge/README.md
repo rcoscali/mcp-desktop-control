@@ -1,20 +1,18 @@
 # bridge — delegate from WSL2 to a Windows-side agent
 
-`ask_windows_agent` lets a client running in **WSL2** hand a task to a
-headless agent running on **Windows**, and read back the result. This is
-the clean way to act on the Windows side (e.g. drive the Windows desktop through
+`ask_windows_agent` lets a client running in **WSL2** hand a task to an agent
+running on **Windows** (CLI or API), and read back the result. This is the
+clean way to act on the Windows side (e.g. drive the Windows desktop through
 the desktop-control / voice MCP servers) from a WSL2 orchestrator — WSL2 cannot
 see the Windows desktop itself.
 
 ```
-Agent (WSL2)  ──ask_windows_agent──▶  Windows agent CLI (Claude / Gemini / Codex / Copilot / local wrapper)
-                                        └─ its own tools / MCP servers
+WSL2 orchestrator  ──ask_windows_agent──▶  Windows agent CLI/API
+                                             └─ its own tools / MCP servers
 ```
 
 ## Prerequisites
-- A **Windows-side headless agent CLI** installed on Windows and reachable from
-  WSL. By default the bridge targets `claude.exe`; set `ASK_WIN_AGENT_BIN`
-  and `ASK_WIN_AGENT_ARGS` to use another agent.
+- A Windows-side agent/CLI/API configured (Claude/OpenAI/Mistral/Copilot/custom).
 - The Windows agent has its **own auth** and (ideally) the desktop-control /
   voice MCP servers configured, plus pre-authorized tools for automation.
 - `pip install mcp` in the WSL2 Python that runs this server.
@@ -34,21 +32,37 @@ python bridge/ask.py "Open Notepad and type hello" \
     --allowed-tools "mcp__desktop-control__*" --permission-mode bypassPermissions
 ```
 
+## Quick test (API)
+```bash
+ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES=1 python bridge/ask.py "Summarize this text" --provider openai --interface api \
+    --api-url "https://api.openai.com/v1/chat/completions" --api-key "$OPENAI_API_KEY" \
+    --api-body '{"model":"gpt-4.1-mini","messages":[{"role":"user","content":"{prompt}"}]}'
+```
+
 ## Configuration (env)
 | Variable | Effect |
 |---|---|
-| `ASK_WIN_AGENT_BIN` | path to the Windows agent CLI (defaults to `claude.exe`; `ASK_WIN_CLAUDE_BIN` still works) |
-| `ASK_WIN_AGENT_ARGS` | optional argv template, e.g. `exec --json {prompt}` or `-p {prompt} --output-format json` |
-| `ASK_WIN_CLAUDE_ALLOWED_TOOLS` | default `--allowedTools` (space/comma list) |
-| `ASK_WIN_CLAUDE_PERMISSION_MODE` | default `--permission-mode` |
-| `ASK_WIN_CLAUDE_MODEL` | default `--model` |
+| `ASK_WIN_AGENT_BIN` | generic Windows agent CLI command (legacy compatibility; defaults to `claude.exe`) |
+| `ASK_WIN_AGENT_ARGS` | generic CLI argv template, e.g. `exec --json {prompt}` or `-p {prompt} --output-format json` |
+| `ASK_WIN_CLAUDE_BIN` | Claude CLI binary override |
+| `ASK_WIN_CLAUDE_ALLOWED_TOOLS` | default `--allowedTools` for Claude |
+| `ASK_WIN_CLAUDE_PERMISSION_MODE` | default `--permission-mode` for Claude |
+| `ASK_WIN_CLAUDE_MODEL` | default Claude model |
+| `ASK_WIN_<PROVIDER>_CLI_CMD` | CLI command for `provider` (`OPENAI`, `MISTRAL`, `COPILOT`, `CUSTOM`) |
+| `ASK_WIN_<PROVIDER>_CLI_ARGS` | CLI args template (supports `{prompt}`, `{model}`, `{resume}`, `{cwd}`…) |
+| `ASK_WIN_<PROVIDER>_API_URL` | API URL for `provider` |
+| `ASK_WIN_<PROVIDER>_API_KEY` | API key (used to build Authorization header when missing) |
+| `ASK_WIN_<PROVIDER>_API_HEADERS` | JSON headers object |
+| `ASK_WIN_<PROVIDER>_API_BODY` | JSON body template |
+| `ASK_WIN_AGENT_*` | generic fallback for shared provider settings such as `MODEL`, `API_URL`, `API_KEY`, `API_HEADERS`, `API_BODY`, `CLI_CMD`, `CLI_ARGS` |
+| `ASK_WIN_ALLOW_TOOL_PARAM_OVERRIDES` | if non-empty, allow `bridge/ask.py` (and the internal helper) to accept `--cli-command/--cli-args-template/--api-url/--api-key/--api-headers/--api-body` overrides; otherwise these overrides are ignored |
 
-`ASK_WIN_AGENT_ARGS` placeholders: `{prompt}`, `{model}`, `{resume}`, `{cwd}`,
-`{permission_mode}`, `{allowed_tools}`, `{add_dir}`. List placeholders should be
-their own argv token.
+`ASK_WIN_AGENT_ARGS` / `ASK_WIN_<PROVIDER>_CLI_ARGS` placeholders: `{prompt}`,
+`{model}`, `{resume}`, `{cwd}`, `{permission_mode}`, `{allowed_tools}`,
+`{add_dir}`. List placeholders should be their own argv token.
 
 ## Safety
-- The Windows agent's autonomy = your `permission_mode` / `allowed_tools`.
+- The Windows agent's autonomy = your `permission_mode` / `allowed_tools` (CLI mode).
   **`bypassPermissions` grants full autonomy** — use only on a trusted/test
   machine, and keep risky GUI actions behind confirmation.
 - Each call is a full agent run (cost + latency). Use `resume` for continuity.
