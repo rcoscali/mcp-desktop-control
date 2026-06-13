@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-bridge/ask.py — CLI to delegate a one-shot task to the Windows Claude Code.
+bridge/ask.py — CLI to delegate a one-shot task to a Windows-side agent.
 
 Same engine as the MCP tool, handy to validate the WSL2 -> Windows bridge before
-wiring it into Claude Code.
+wiring it into your MCP client.
 
     python bridge/ask.py "Open Notepad and type hello" \
         --allowed-tools "mcp__desktop-control__*" --permission-mode bypassPermissions
@@ -15,11 +15,11 @@ import argparse
 import json
 import sys
 
-from server import _run_windows_claude
+from server import _run_windows_agent
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Delegate a task to the Windows Claude Code.")
+    ap = argparse.ArgumentParser(description="Delegate a task to a Windows-side agent.")
     ap.add_argument("prompt")
     ap.add_argument("--allowed-tools", nargs="*", default=None)
     ap.add_argument("--permission-mode", default=None)
@@ -31,7 +31,7 @@ def main() -> int:
     ap.add_argument("--json", action="store_true", help="print the full JSON result")
     args = ap.parse_args()
 
-    res = _run_windows_claude(
+    res = _run_windows_agent(
         args.prompt,
         allowed_tools=args.allowed_tools,
         permission_mode=args.permission_mode,

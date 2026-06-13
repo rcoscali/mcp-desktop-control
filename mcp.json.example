@@ -1,9 +1,9 @@
 {
-  "_comment": "Copy ONE server block into your Claude Code MCP config (project .mcp.json or via `claude mcp add`). Pick the one matching your target OS / transport. Use Mirror WSL2 networking with localhost sharing (see M$ docs for this)",
+  "_comment": "Copy ONE server block into your MCP client config (.mcp.json or the equivalent settings UI/file). Pick the one matching your target OS / transport. Use Mirror WSL2 networking with localhost sharing (see M$ docs for this)",
 
   "mcpServers": {
     "desktop-control-linux-stdio": {
-      "_when": "Driving the local Linux desktop; Claude Code launches the server.",
+      "_when": "Driving the local Linux desktop; your MCP client launches the server.",
       "command": "python3",
       "args": ["/home/you/mcp-desktop-control/server.py"],
       "env": { "MCP_DESKTOP_MAX_DIM": "1280", "MCP_DESKTOP_DRY_RUN": "0" }
@@ -30,10 +30,10 @@
     },
 
     "windows-claude-bridge": {
-      "_when": "Run in WSL2: delegate a task to the Windows Claude (claude.exe headless). Lets a WSL2 agent act on the Windows side (desktop/voice).",
+      "_when": "Run in WSL2: delegate a task to a Windows-side headless agent. Defaults to Claude Code, but you can swap in another CLI with ASK_WIN_AGENT_BIN / ASK_WIN_AGENT_ARGS.",
       "command": "python3",
       "args": ["/home/you/mcp-desktop-control/bridge/server.py"],
-      "env": { "ASK_WIN_CLAUDE_BIN": "claude.exe" }
+      "env": { "ASK_WIN_AGENT_BIN": "claude.exe" }
     }
   }
 }
